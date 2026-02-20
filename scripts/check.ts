@@ -42,11 +42,13 @@ function runStep(name: string, subsystem: 'frontend' | 'backend', cmd: string[],
 // Detect available tools
 const hasGo = hasTool("go");
 const hasTygo = hasTool("tygo");
+const hasSqlc = hasTool("sqlc");
 const hasLinter = hasTool("golangci-lint");
 const hasGoimports = hasTool("goimports");
 
 if (!hasGo) warnMissingTool("go", "skipping backend checks");
 if (!hasTygo) warnMissingTool("tygo", "skipping binding generation");
+if (!hasSqlc) warnMissingTool("sqlc", "skipping sqlc diff check");
 if (!hasLinter) warnMissingTool("golangci-lint", "skipping backend lint");
 if (!hasGoimports) warnMissingTool("goimports", "skipping Go import formatting");
 
@@ -110,6 +112,12 @@ const checks: Check[] = [
 			cmd: ['go', 'test', './...']
 		},
 	] : []),
+	...(hasSqlc ? [{
+		name: 'sqlc-diff',
+		subsystem: 'backend' as const,
+		cmd: ['sqlc', 'diff'],
+		hint: 'Run `just generate` to regenerate sqlc code'
+	}] : []),
 ];
 
 const start = Date.now();
