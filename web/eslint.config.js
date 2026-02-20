@@ -12,7 +12,7 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default tseslint.config(
 	includeIgnoreFile(gitignorePath),
 	{
-		ignores: ['dist/', '.svelte-kit/', 'build/']
+		ignores: ['dist/', '.svelte-kit/', 'build/'],
 	},
 	// Base JS rules
 	js.configs.recommended,
@@ -28,27 +28,24 @@ export default tseslint.config(
 			parserOptions: {
 				project: './tsconfig.json',
 				tsconfigRootDir: import.meta.dirname,
-				extraFileExtensions: ['.svelte']
-			}
+				extraFileExtensions: ['.svelte'],
+			},
 		},
 		rules: {
 			'no-undef': 'off',
-			'@typescript-eslint/no-unused-vars': [
-				'error',
-				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
-			],
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
 			'@typescript-eslint/consistent-type-imports': [
 				'error',
-				{ prefer: 'type-imports', fixStyle: 'separate-type-imports' }
-			]
-		}
+				{ prefer: 'type-imports', fixStyle: 'separate-type-imports' },
+			],
+		},
 	},
 	// TS files: use custom parser to resolve .svelte named exports
 	{
 		files: ['**/*.ts'],
 		languageOptions: {
-			parser: customParser
-		}
+			parser: customParser,
+		},
 	},
 	// Svelte files: svelte-eslint-parser with custom parser for script blocks
 	{
@@ -56,18 +53,18 @@ export default tseslint.config(
 		languageOptions: {
 			parserOptions: {
 				parser: customParser,
-				svelteConfig
-			}
-		}
+				svelteConfig,
+			},
+		},
 	},
 	// Disable type-checked rules for plain JS config files
 	{
 		files: ['**/*.js'],
-		...tseslint.configs.disableTypeChecked
+		...tseslint.configs.disableTypeChecked,
 	},
 	// Disable type-checked rules for files not in tsconfig
 	{
 		files: ['entrypoint.ts', 'vite-plugin-json-logger.ts'],
-		...tseslint.configs.disableTypeChecked
-	}
+		...tseslint.configs.disableTypeChecked,
+	},
 );

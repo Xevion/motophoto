@@ -14,7 +14,7 @@ function jsonFormatter(record: LogRecord): string {
 		timestamp: new Date().toISOString(),
 		level: record.level.toLowerCase(),
 		message: record.message.join(' '),
-		target: 'vite'
+		target: 'vite',
 	};
 
 	if (record.properties && Object.keys(record.properties).length > 0) {
@@ -36,7 +36,7 @@ export function jsonLogger(): Plugin {
 
 	if (!useJsonLogs) {
 		return {
-			name: 'vite-plugin-json-logger'
+			name: 'vite-plugin-json-logger',
 		};
 	}
 
@@ -46,21 +46,21 @@ export function jsonLogger(): Plugin {
 			sinks: {
 				json: (record: LogRecord) => {
 					process.stdout.write(jsonFormatter(record));
-				}
+				},
 			},
 			filters: {},
 			loggers: [
 				{
 					category: ['logtape', 'meta'],
 					lowestLevel: 'warning',
-					sinks: ['json']
+					sinks: ['json'],
 				},
 				{
 					category: [],
 					lowestLevel: 'debug',
-					sinks: ['json']
-				}
-			]
+					sinks: ['json'],
+				},
+			],
 		});
 		loggerConfigured = true;
 	};
@@ -105,8 +105,8 @@ export function jsonLogger(): Plugin {
 					hasWarned: false,
 					warnOnce(msg: string) {
 						this.warn(msg);
-					}
-				}
+					},
+				},
 			};
 		},
 
@@ -119,7 +119,7 @@ export function jsonLogger(): Plugin {
 				if (urls) {
 					logger.info('dev server running', {
 						local: urls.local,
-						network: urls.network
+						network: urls.network,
 					});
 				}
 			};
@@ -137,7 +137,7 @@ export function jsonLogger(): Plugin {
 			const logger = getLogger(['vite']);
 			logger.info('hmr update', {
 				file: file.replace(process.cwd(), ''),
-				modules: modules.length
+				modules: modules.length,
 			});
 			return modules;
 		},
@@ -150,6 +150,6 @@ export function jsonLogger(): Plugin {
 		buildEnd() {
 			const logger = getLogger(['vite']);
 			logger.info('build ended');
-		}
+		},
 	};
 }

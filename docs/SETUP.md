@@ -28,10 +28,13 @@ All project tools are defined in `.mise.toml` and managed by [mise](https://mise
 | [bun](https://bun.sh) | Frontend runtime, script runner | Yes |
 | [just](https://just.systems) | Task runner | Yes |
 | [air](https://github.com/air-verse/air) | Go hot-reload dev server | For `just dev` |
+| [goimports](https://pkg.go.dev/golang.org/x/tools/cmd/goimports) | Go import formatting | No — skipped if missing |
 | [golangci-lint](https://golangci-lint.run) | Go linter | No — skipped if missing |
 | [tygo](https://github.com/gzuidhof/tygo) | Go → TypeScript type generation | No — skipped if missing |
 | [sqlc](https://sqlc.dev) | SQL → Go code generation | For `just generate` |
 | [docker](https://docs.docker.com/engine/install/) | Local Postgres | For `just db` (Linux only) |
+
+Biome (frontend formatter) is installed as an npm dev dependency in `web/` — no separate install needed.
 
 ## Platform notes
 
@@ -50,6 +53,7 @@ Do not develop from Windows natively; the toolchain assumes a Unix environment.
 If you prefer not to use mise, install each tool individually — see the links above. Go-based tools can also be installed with `go install`:
 
 ```bash
+go install golang.org/x/tools/cmd/goimports@latest
 go install github.com/air-verse/air@latest
 go install github.com/gzuidhof/tygo@latest
 go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest

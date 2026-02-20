@@ -15,7 +15,7 @@ function jsonFormatter(record: LogRecord): string {
 		timestamp: new Date().toISOString(),
 		level: record.level.toLowerCase(),
 		message: record.message.join(' '),
-		target: categoryTarget ? `bun:${categoryTarget}` : 'bun'
+		target: categoryTarget ? `bun:${categoryTarget}` : 'bun',
 	};
 
 	if (record.properties && Object.keys(record.properties).length > 0) {
@@ -64,21 +64,21 @@ export async function initLogger() {
 		await configure({
 			sinks: {
 				json: useJsonLogs ? jsonSink : consoleSink,
-				console: useJsonLogs ? jsonSink : consoleSink
+				console: useJsonLogs ? jsonSink : consoleSink,
 			},
 			filters: {},
 			loggers: [
 				{
 					category: ['logtape', 'meta'],
 					lowestLevel: 'warning',
-					sinks: [useJsonLogs ? 'json' : 'console']
+					sinks: [useJsonLogs ? 'json' : 'console'],
 				},
 				{
 					category: [],
 					lowestLevel: logLevel,
-					sinks: [useJsonLogs ? 'json' : 'console']
-				}
-			]
+					sinks: [useJsonLogs ? 'json' : 'console'],
+				},
+			],
 		});
 	} catch (error) {
 		if (error instanceof Error && error.message.includes('Already configured')) {

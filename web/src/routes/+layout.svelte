@@ -1,14 +1,14 @@
 <script lang="ts">
-	import "../app.css";
-	import favicon from "$lib/assets/favicon.svg";
-	import { resolve } from "$app/paths";
-	import { themeStore } from "$lib/stores/theme.svelte";
-	import ThemeToggle from "$lib/components/theme-toggle.svelte";
-	import type { Snippet } from "svelte";
+import '../app.css';
+import favicon from '$lib/assets/favicon.svg';
+import { resolve } from '$app/paths';
+import { themeStore } from '$lib/stores/theme.svelte';
+import ThemeToggle from '$lib/components/theme-toggle.svelte';
+import type { Snippet } from 'svelte';
 
-	let { children }: { children: Snippet } = $props();
+let { children }: { children: Snippet } = $props();
 
-	themeStore.init();
+themeStore.init();
 </script>
 
 <svelte:head>

@@ -43,14 +43,17 @@ function runStep(name: string, subsystem: 'frontend' | 'backend', cmd: string[],
 const hasGo = hasTool("go");
 const hasTygo = hasTool("tygo");
 const hasLinter = hasTool("golangci-lint");
+const hasGoimports = hasTool("goimports");
 
 if (!hasGo) warnMissingTool("go", "skipping backend checks");
 if (!hasTygo) warnMissingTool("tygo", "skipping binding generation");
 if (!hasLinter) warnMissingTool("golangci-lint", "skipping backend lint");
+if (!hasGoimports) warnMissingTool("goimports", "skipping Go import formatting");
 
 if (flags.fix) {
-	if (hasGo) runStep('fix-gofmt', 'backend', ['gofmt', '-w', '.']);
+	if (hasGoimports) runStep('fix-goimports', 'backend', ['goimports', '-w', '.']);
 	runStep('fix-eslint', 'frontend', ['bun', 'run', '--cwd', 'web', 'lint:fix']);
+	runStep('fix-biome', 'frontend', ['bun', 'run', '--cwd', 'web', 'format']);
 }
 
 // Generate TypeScript bindings from Go types before running checks
@@ -78,7 +81,18 @@ const checks: Check[] = [
 		subsystem: 'frontend',
 		cmd: ['bun', 'run', '--cwd', 'web', 'lint']
 	},
+	{
+		name: 'frontend-format',
+		subsystem: 'frontend',
+		cmd: ['bun', 'run', '--cwd', 'web', 'format:check']
+	},
 	// Backend checks (conditional on tool availability)
+	...(hasGoimports ? [{
+		name: 'backend-format',
+		subsystem: 'backend' as const,
+		cmd: ['bash', '-c', 'test -z "$(goimports -l .)"'],
+		hint: 'Run `just format` or `goimports -w .` to fix formatting'
+	}] : []),
 	...(hasLinter ? [{
 		name: 'backend-lint',
 		subsystem: 'backend' as const,

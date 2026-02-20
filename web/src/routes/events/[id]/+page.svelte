@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { PageData } from "./$types";
-	import { resolve } from "$app/paths";
-	import { Badge } from "$lib/components/ui/badge/index.js";
-	import { Button } from "$lib/components/ui/button/index.js";
-	import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+import type { PageData } from './$types';
+import { resolve } from '$app/paths';
+import { Badge } from '$lib/components/ui/badge/index.js';
+import { Button } from '$lib/components/ui/button/index.js';
+import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 
-	let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>

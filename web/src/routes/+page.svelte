@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { PageData } from "./$types";
-	import { resolve } from "$app/paths";
-	import { Badge } from "$lib/components/ui/badge/index.js";
-	import * as Card from "$lib/components/ui/card/index.js";
+import type { PageData } from './$types';
+import { resolve } from '$app/paths';
+import { Badge } from '$lib/components/ui/badge/index.js';
+import * as Card from '$lib/components/ui/card/index.js';
 
-	let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>

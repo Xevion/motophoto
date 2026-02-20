@@ -72,7 +72,7 @@ function createThemeStore() {
 		},
 		init,
 		toggle,
-		set
+		set,
 	};
 }
 

@@ -29,23 +29,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 				headers,
 				body: event.request.body,
 				// @ts-expect-error — Bun supports duplex streaming
-				duplex: 'half'
+				duplex: 'half',
 			});
 
 			return new Response(response.body, {
 				status: response.status,
 				statusText: response.statusText,
-				headers: response.headers
+				headers: response.headers,
 			});
 		} catch (err) {
 			proxyLogger.error('{method} {path} → backend unreachable', {
 				method: event.request.method,
 				path: pathname,
-				error: err instanceof Error ? err.message : String(err)
+				error: err instanceof Error ? err.message : String(err),
 			});
 			return new Response(JSON.stringify({ error: 'Backend unavailable' }), {
 				status: 502,
-				headers: { 'Content-Type': 'application/json' }
+				headers: { 'Content-Type': 'application/json' },
 			});
 		}
 	}

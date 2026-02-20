@@ -19,7 +19,7 @@ function log(level: LogLevel, message: string, fields?: Record<string, unknown>)
 			level,
 			target: 'motophoto::entrypoint',
 			message,
-			...fields
+			...fields,
 		};
 		const out = level === 'error' ? process.stderr : process.stdout;
 		out.write(JSON.stringify(entry) + '\n');
@@ -37,7 +37,7 @@ function log(level: LogLevel, message: string, fields?: Record<string, unknown>)
 
 const sharedEnv: Record<string, string | undefined> = {
 	...process.env,
-	LOG_JSON
+	LOG_JSON,
 };
 if (LOG_LEVEL) {
 	sharedEnv.LOG_LEVEL = LOG_LEVEL;
@@ -48,7 +48,7 @@ const goProc = spawn({
 	cmd: ['/app/motophoto'],
 	env: { ...sharedEnv, PORT: BACKEND_PORT },
 	stdout: 'inherit',
-	stderr: 'inherit'
+	stderr: 'inherit',
 });
 
 // Wait for backend to be healthy (15s timeout)
@@ -84,10 +84,10 @@ const bunProc = spawn({
 		...sharedEnv,
 		PORT,
 		HOST: '0.0.0.0',
-		BACKEND_URL
+		BACKEND_URL,
 	},
 	stdout: 'inherit',
-	stderr: 'inherit'
+	stderr: 'inherit',
 });
 
 // Monitor both processes — exit if either dies

@@ -28,8 +28,9 @@ lint:
 
 # Auto-format all code
 format:
-    gofmt -w .
+    goimports -w .
     bun run --cwd web lint:fix
+    bun run --cwd web format
 
 # Build everything for production
 build:

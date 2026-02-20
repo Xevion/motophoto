@@ -9,5 +9,6 @@ golangci-lint = "2.10.1"
 air = "1.64.5"
 
 # Go-based tools (installed via `go install` backend)
+"go:golang.org/x/tools/cmd/goimports" = "latest"
 "go:github.com/gzuidhof/tygo" = "0.2.21"
 "go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "1.30.0"

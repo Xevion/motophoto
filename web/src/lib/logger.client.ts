@@ -13,19 +13,19 @@ export function initClientLogger(): void {
 
 	configureSync({
 		sinks: {
-			console: getConsoleSink()
+			console: getConsoleSink(),
 		},
 		loggers: [
 			{
 				category: ['logtape', 'meta'],
 				lowestLevel: 'warning',
-				sinks: ['console']
+				sinks: ['console'],
 			},
 			{
 				category: [],
 				lowestLevel: dev ? 'debug' : 'warning',
-				sinks: ['console']
-			}
-		]
+				sinks: ['console'],
+			},
+		],
 	});
 }
