@@ -1,58 +1,6 @@
 # Go Backend
 
-The Go backend is a JSON API server built with Chi, serving the SvelteKit frontend and handling all data operations.
-
-## Getting Started
-
-### Prerequisites
-
-- **Go 1.26+** — `go version` to check
-- **Air** — hot-reload for development: `go install github.com/air-verse/air@latest`
-- **sqlc** — SQL code generation: `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
-- **Docker** — for local PostgreSQL
-
-### Running
-
-```bash
-# Start just the backend (with hot-reload)
-air
-
-# Start both backend + frontend together
-just dev
-```
-
-Air watches for Go file changes and rebuilds automatically. Config is in `.air.toml`.
-
-### Building
-
-```bash
-just build            # Full build (frontend + backend)
-```
-
-## Project Structure
-
-```
-main.go                              # Entry point
-internal/
-├── server/
-│   └── server.go                    # Router, middleware, routes, handlers
-├── database/
-│   ├── database.go                  # pgx connection pool
-│   ├── migrations/                  # SQL migration files
-│   │   └── 001_initial.sql
-│   ├── queries/                     # sqlc query definitions
-│   │   ├── users.sql
-│   │   ├── events.sql
-│   │   └── photos.sql
-│   └── db/                          # Generated code (DO NOT EDIT)
-│       ├── db.go
-│       ├── models.go
-│       ├── users.sql.go
-│       ├── events.sql.go
-│       └── photos.sql.go
-└── middleware/
-    └── middleware.go                 # Custom middleware (placeholder)
-```
+The Go backend is a JSON API server built with Chi, serving the SvelteKit frontend and handling all data operations. See [ARCHITECTURE.md](ARCHITECTURE.md) for overall system design and project structure.
 
 ## Entry Point
 
@@ -207,25 +155,6 @@ if err != nil {
     return
 }
 ```
-
-## Logging
-
-Use `log/slog` with structured fields:
-
-```go
-slog.Info("server started", "port", port)
-slog.Error("query failed", "error", err, "query", "ListEvents")
-```
-
-See [STYLE.md](STYLE.md) for log level guidelines.
-
-## Linting
-
-Linting:
-
-- **`go vet`** — runs as part of `just check` and `just lint`
-
-Run `just check` for parallel verification (`go vet` + `go build` + `go test` + `svelte-check` + `eslint`), or `just lint` for just `eslint` + `go vet`.
 
 ## Testing
 

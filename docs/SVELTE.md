@@ -1,45 +1,6 @@
 # SvelteKit Frontend
 
-The frontend is a SvelteKit 2 app using Svelte 5, managed with Bun.
-
-## Getting Started
-
-### Prerequisites
-
-- **Bun** — package manager and runtime: [bun.sh](https://bun.sh)
-
-### Setup
-
-```bash
-cd web
-bun install
-```
-
-### Running
-
-```bash
-# From project root — starts both frontend and backend
-just dev
-
-# Frontend only
-just dev -f
-
-# From web/ — starts only the frontend
-bun run dev
-```
-
-The dev server runs on **port 5173**. API requests (`/api/*`) are proxied to the Go backend on port 3001 via Vite's proxy config in `vite.config.ts`.
-
-### Type Checking & Linting
-
-```bash
-bun run check         # svelte-check (type errors)
-bun run lint          # ESLint
-
-# Or from project root
-just check            # Parallel: go vet + go build + go test + svelte-check + eslint
-just lint             # eslint + go vet
-```
+The frontend is a SvelteKit 2 app using Svelte 5, managed with Bun. See [ARCHITECTURE.md](ARCHITECTURE.md) for overall system design and how the frontend connects to the Go backend.
 
 ## Project Structure
 
@@ -177,17 +138,6 @@ server: {
 }
 ```
 
-All backend routes live under `/api`, so this single rule covers everything.
-
 ### SvelteKit Adapter
 
 Uses `@xevion/svelte-adapter-bun` for server-side rendering via the Bun runtime. In production, the SvelteKit SSR server runs as a separate process alongside the Go backend, orchestrated by `web/entrypoint.ts`.
-
-## Building
-
-```bash
-bun run build         # Build SvelteKit for production
-just build            # Full build (frontend + backend), from project root
-```
-
-The build output goes to `web/build/` and is copied into the Docker image during the production build.
