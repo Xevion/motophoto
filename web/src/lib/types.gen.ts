@@ -4,13 +4,13 @@
 // source: types.go
 
 export interface Event {
-  id: number /* int */;
   name: string;
   sport: string;
   location: string;
   date: string;
-  photo_count: number /* int */;
-  galleries: number /* int */;
   description: string;
   tags: string[];
+  id: number /* int */;
+  photo_count: number /* int */;
+  galleries: number /* int */;
 }

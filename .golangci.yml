@@ -1,0 +1,32 @@
+version: "2"
+
+linters:
+  enable:
+    # bugs
+    - bodyclose        # HTTP response body not closed
+    - noctx            # HTTP requests without context
+    - nilerr           # returns nil even when err != nil
+    - sqlclosecheck    # sql.Rows/Stmt not closed
+    - rowserrcheck     # rows.Err() not checked
+
+    # error handling
+    - errorlint        # error wrapping issues (Go 1.13+)
+
+    # security
+    - gosec            # security problems
+
+    # style & modernization
+    - modernize        # suggests modern Go idioms
+    - misspell         # commonly misspelled English words
+
+    # structured logging
+    - sloglint         # consistent log/slog usage
+
+  settings:
+    govet:
+      enable-all: true
+    gosec:
+      excludes:
+        - G104 # unhandled errors — already covered by errcheck
+    sloglint:
+      kv-only: true

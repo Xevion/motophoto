@@ -69,9 +69,9 @@ const checks: Check[] = [
 	},
 	// Backend checks
 	{
-		name: 'backend-vet',
+		name: 'backend-lint',
 		subsystem: 'backend',
-		cmd: ['go', 'vet', './...']
+		cmd: ['golangci-lint', 'run', '--timeout=5m']
 	},
 	{
 		name: 'backend-build',

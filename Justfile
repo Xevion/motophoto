@@ -24,7 +24,7 @@ test:
 # Run linters
 lint:
     bun run --cwd web lint
-    go vet ./...
+    golangci-lint run --timeout=5m
 
 # Auto-format all code
 format:

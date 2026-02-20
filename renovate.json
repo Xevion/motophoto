@@ -1,4 +1,32 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "dependencyDashboard": true
+  "extends": ["config:recommended"],
+  "dependencyDashboard": false,
+  "packageRules": [
+    {
+      "description": "Group Go dependencies",
+      "matchManagers": ["gomod"],
+      "groupName": "go dependencies"
+    },
+    {
+      "description": "Group Svelte ecosystem",
+      "matchPackagePatterns": ["^@sveltejs/", "^svelte"],
+      "groupName": "svelte"
+    },
+    {
+      "description": "Group Tailwind ecosystem",
+      "matchPackagePatterns": ["^@tailwindcss/", "^tailwind", "^tw-"],
+      "groupName": "tailwind"
+    },
+    {
+      "description": "Group ESLint and linting tools",
+      "matchPackagePatterns": ["^@eslint/", "^eslint", "^typescript-eslint", "^@typescript-eslint/"],
+      "groupName": "linting"
+    },
+    {
+      "description": "Group TypeScript and type definitions",
+      "matchPackagePatterns": ["^typescript$", "^@types/"],
+      "groupName": "typescript"
+    }
+  ]
 }

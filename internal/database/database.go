@@ -12,7 +12,7 @@ import (
 func New(ctx context.Context) (*pgxpool.Pool, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://motophoto:motophoto@localhost:5432/motophoto?sslmode=disable"
+		dsn = "postgres://motophoto:motophoto@localhost:5432/motophoto?sslmode=disable" //nolint:gosec // local dev default, not hardcoded credentials
 	}
 
 	config, err := pgxpool.ParseConfig(dsn)
