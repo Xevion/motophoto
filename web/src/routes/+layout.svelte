@@ -8,4 +8,5 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+<!-- eslint-disable-next-line @typescript-eslint/no-unsafe-call -->
 {@render children()}

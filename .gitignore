@@ -40,3 +40,4 @@ web/build/
 # Go workspace
 go.work
 go.work.sum
+web/.eslintcache

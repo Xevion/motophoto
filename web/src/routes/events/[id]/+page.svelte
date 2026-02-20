@@ -9,6 +9,7 @@
 </svelte:head>
 
 <main>
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 	<a href="/" class="back">&larr; All events</a>
 
 	<header>
@@ -34,7 +35,7 @@
 	</div>
 
 	<div class="tags">
-		{#each data.event.tags as tag}
+		{#each data.event.tags as tag (tag)}
 			<span class="tag">{tag}</span>
 		{/each}
 	</div>

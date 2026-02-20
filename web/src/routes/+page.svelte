@@ -20,8 +20,9 @@
 	<section class="events">
 		<h2>Upcoming Events ({data.total})</h2>
 		<div class="grid">
-			{#each data.events as event}
-				<a href="/events/{event.id}" class="card">
+		{#each data.events as event (event.id)}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+			<a href="/events/{event.id}" class="card">
 					<div class="card-sport">{event.sport}</div>
 					<h3>{event.name}</h3>
 					<p class="meta">{event.location}</p>
@@ -32,7 +33,7 @@
 						<span>{event.galleries} {event.galleries === 1 ? 'gallery' : 'galleries'}</span>
 					</div>
 					<div class="tags">
-						{#each event.tags as tag}
+						{#each event.tags as tag (tag)}
 							<span class="tag">{tag}</span>
 						{/each}
 					</div>

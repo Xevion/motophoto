@@ -8,7 +8,7 @@ COPY web/ ./
 RUN bun run build
 
 # Build backend
-FROM golang:1.24-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 WORKDIR /app
 RUN apk update && apk add --no-cache upx ca-certificates tzdata
 COPY go.mod go.sum ./
