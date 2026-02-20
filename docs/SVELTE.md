@@ -19,13 +19,16 @@ bun install
 
 ```bash
 # From project root — starts both frontend and backend
-task dev
+just dev
+
+# Frontend only
+just dev -f
 
 # From web/ — starts only the frontend
 bun run dev
 ```
 
-The dev server runs on **port 5173**. API requests (`/api/*`, `/health`) are proxied to the Go backend on port 8080 via Vite's proxy config in `vite.config.ts`.
+The dev server runs on **port 5173**. API requests (`/api/*`) are proxied to the Go backend on port 3001 via Vite's proxy config in `vite.config.ts`.
 
 ### Type Checking & Linting
 
@@ -34,8 +37,8 @@ bun run check         # svelte-check (type errors)
 bun run lint          # ESLint
 
 # Or from project root
-task check            # Runs both go vet + svelte-check
-task lint             # Runs both golangci-lint + eslint
+just check            # Parallel: go vet + go build + go test + svelte-check + eslint
+just lint             # eslint + go vet
 ```
 
 ## Project Structure
@@ -55,7 +58,7 @@ web/
 │   │   └── components/              # Shared components
 │   └── app.html                     # HTML shell
 ├── static/                          # Static assets (favicon, etc.)
-├── svelte.config.js                 # SvelteKit config (adapter-auto)
+├── svelte.config.js                 # SvelteKit config (@xevion/svelte-adapter-bun)
 ├── vite.config.ts                   # Vite config (API proxy)
 ├── tsconfig.json
 ├── eslint.config.js
@@ -117,10 +120,10 @@ export const load: PageServerLoad = async () => {
 
 ### apiFetch
 
-All API calls go through the `apiFetch` helper in `src/lib/api.ts`. It wraps `fetch` and points to the Go backend:
+All API calls go through the `apiFetch` helper in `src/lib/api.ts`. It uses relative URLs (e.g., `/api/v1/events`), which are routed to the Go backend automatically:
 
-- **In the browser** — requests go to Vite's proxy (same origin), which forwards to `:8080`
-- **In SSR (load functions)** — requests go directly to `http://localhost:8080`
+- **In dev** — Vite's proxy forwards `/api/*` to Go on `:3001`
+- **In production** — SvelteKit's `hooks.server.ts` reverse-proxies `/api/*` to Go on `:3001`
 
 ```typescript
 import { apiFetch } from '$lib/api';
@@ -135,14 +138,15 @@ Data fetching happens in `+page.server.ts` load functions, which run on the serv
 
 ```typescript
 // +page.server.ts
-export const load: PageServerLoad = async () => {
-    const [eventsRes, healthRes] = await Promise.all([
-        apiFetch('/api/v1/events'),
-        apiFetch('/health'),
+export const load: PageServerLoad = async ({ fetch }) => {
+    const [eventsData, health] = await Promise.all([
+        apiFetch<EventsResponse>('/api/v1/events', fetch),
+        apiFetch<HealthResponse>('/api/health', fetch),
     ]);
     return {
-        events: await eventsRes.json(),
-        health: await healthRes.json(),
+        events: eventsData.events,
+        total: eventsData.total,
+        backendStatus: health.status,
     };
 };
 ```
@@ -168,23 +172,22 @@ The dev server proxies API requests to the Go backend:
 ```typescript
 server: {
     proxy: {
-        '/api': 'http://localhost:8080',
-        '/health': 'http://localhost:8080',
+        '/api': { target: 'http://localhost:3001', changeOrigin: true },
     }
 }
 ```
 
-If you add new top-level API paths (beyond `/api`), add them here too.
+All backend routes live under `/api`, so this single rule covers everything.
 
 ### SvelteKit Adapter
 
-Currently uses `adapter-auto`, which auto-detects the deployment platform. In production (Railway), the SvelteKit output is built as static files served by the Go binary — the adapter config may change as the deployment story evolves.
+Uses `@xevion/svelte-adapter-bun` for server-side rendering via the Bun runtime. In production, the SvelteKit SSR server runs as a separate process alongside the Go backend, orchestrated by `web/entrypoint.ts`.
 
 ## Building
 
 ```bash
 bun run build         # Build SvelteKit for production
-task build-frontend   # Same thing, from project root
+just build            # Full build (frontend + backend), from project root
 ```
 
 The build output goes to `web/build/` and is copied into the Docker image during the production build.

@@ -1,9 +1,7 @@
 import { type Subprocess, spawn } from 'bun';
 
 const PORT = process.env.PORT || '8080';
-const BACKEND_PORT = process.env.BACKEND_PORT || '3001';
-const BACKEND_HOST = process.env.BACKEND_HOST || '127.0.0.1';
-const HEALTH_URL = `http://localhost:${BACKEND_PORT}/health`;
+const BACKEND_URL = 'http://localhost:3001';
 
 function log(level: 'info' | 'error', message: string, fields?: Record<string, unknown>) {
 	const entry = {
@@ -17,13 +15,10 @@ function log(level: 'info' | 'error', message: string, fields?: Record<string, u
 	out.write(JSON.stringify(entry) + '\n');
 }
 
-log('info', 'Starting Go backend', { host: BACKEND_HOST, port: BACKEND_PORT });
+log('info', 'Starting Go backend');
 const goProc = spawn({
 	cmd: ['/app/motophoto'],
-	env: {
-		...process.env,
-		PORT: BACKEND_PORT
-	},
+	env: process.env,
 	stdout: 'inherit',
 	stderr: 'inherit'
 });
@@ -39,7 +34,7 @@ while (!healthy) {
 	}
 
 	try {
-		const response = await fetch(HEALTH_URL);
+		const response = await fetch(`${BACKEND_URL}/api/health`);
 		if (response.ok) {
 			healthy = true;
 		}
@@ -61,7 +56,7 @@ const bunProc = spawn({
 		...process.env,
 		PORT,
 		HOST: '0.0.0.0',
-		BACKEND_URL: `http://localhost:${BACKEND_PORT}`
+		BACKEND_URL
 	},
 	stdout: 'inherit',
 	stderr: 'inherit'

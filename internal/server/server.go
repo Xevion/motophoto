@@ -19,7 +19,7 @@ type Server struct {
 func New() (*Server, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3001"
 	}
 
 	s := &Server{
@@ -50,13 +50,15 @@ func (s *Server) setupMiddleware() {
 }
 
 func (s *Server) setupRoutes() {
-	s.router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+	s.router.Route("/api", func(r chi.Router) {
+		r.Get("/health", func(w http.ResponseWriter, req *http.Request) {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		})
 
-	s.router.Route("/api/v1", func(r chi.Router) {
-		r.Get("/events", handleListEvents)
-		r.Get("/events/{id}", handleGetEvent)
+		r.Route("/v1", func(r chi.Router) {
+			r.Get("/events", handleListEvents)
+			r.Get("/events/{id}", handleGetEvent)
+		})
 	})
 }
 

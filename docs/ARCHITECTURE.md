@@ -9,44 +9,48 @@ MotoPhoto is an event photography marketplace — photographers upload action sp
 │                   Client Browser                 │
 │                                                  │
 │  SvelteKit (SSR) ──► Go API ──► PostgreSQL       │
-│       :5173              :8080       :57512       │
+│       :5173              :3001       :57512       │
 └─────────────────────────────────────────────────┘
 ```
 
 | Component | Tech | Port | Directory |
 |-----------|------|------|-----------|
 | Frontend | SvelteKit 2 + Svelte 5 | 5173 (dev) | `web/` |
-| Backend | Go + Chi router | 8080 | `main.go`, `internal/` |
+| Backend | Go + Chi router | 3001 | `main.go`, `internal/` |
 | Database | PostgreSQL 17 | 57512 (local) | `docker-compose.yml` |
 
 ## Request Flow
 
 ### Development
 
-In development, two servers run simultaneously via `task dev`:
+In development, two servers run simultaneously via `just dev`:
 
 1. **SvelteKit dev server** (Vite, port 5173) — serves the frontend with HMR
-2. **Go backend** (Air hot-reload, port 8080) — serves the API
+2. **Go backend** (Air hot-reload, port 3001) — serves the API
 
-Vite proxies `/api` and `/health` requests to the Go backend (`web/vite.config.ts`). This means the browser only talks to `:5173`, and Vite forwards API calls transparently.
+Vite proxies `/api` requests to the Go backend on port 3001 (`web/vite.config.ts`). This means the browser only talks to `:5173`, and Vite forwards API calls transparently.
 
-For SSR (server-side rendering), SvelteKit's `+page.server.ts` load functions call the Go API directly at `http://localhost:8080` using the `apiFetch` helper in `web/src/lib/api.ts`.
+SvelteKit's `+page.server.ts` load functions use relative URLs (e.g., `/api/v1/events`) via the `apiFetch` helper in `web/src/lib/api.ts`, which go through the same Vite proxy.
 
 ```
 Browser ──► Vite (:5173)
               ├── static assets, HMR ──► browser
-              └── /api/* proxy ──► Go (:8080) ──► Postgres
+              └── /api/* proxy ──► Go (:3001) ──► Postgres
 ```
 
 ### Production
 
-In production, the Go binary serves both the API and the pre-built SvelteKit static output. There's no separate frontend server — the Go backend handles everything behind a single port.
+In production, the container runs two processes orchestrated by `web/entrypoint.ts`:
+
+1. **Go backend** (port 3001, internal only) — serves the API
+2. **SvelteKit SSR** (port $PORT, public) — server-side renders pages
+
+SvelteKit's `hooks.server.ts` acts as a reverse proxy, forwarding any `/api/*` request to the Go backend. The entrypoint starts the Go backend first, waits for it to pass a health check (`/api/health`), then starts the SvelteKit SSR server.
 
 ```
-Browser ──► Go (:$PORT)
-              ├── /api/* ──► handler ──► Postgres
-              ├── /health ──► health check
-              └── /* ──► static SvelteKit build
+Browser ──► SvelteKit SSR (:$PORT)
+              ├── SSR page rendering
+              └── /api/* proxy (hooks.server.ts) ──► Go (:3001) ──► Postgres
 ```
 
 ## Project Structure
@@ -70,7 +74,11 @@ motophoto/
 │   │   └── lib/                     # Shared code (api.ts, components)
 │   ├── svelte.config.js
 │   └── vite.config.ts               # API proxy config
-├── Taskfile.yml                     # Task runner — all dev commands
+├── Justfile                         # Task runner — all dev commands
+├── scripts/                         # Bun-based dev scripts (check, dev)
+│   ├── check.ts                     # Parallel check runner
+│   ├── dev.ts                       # Dev server orchestrator
+│   └── lib/                         # Shared utilities (fmt, proc)
 ├── docker-compose.yml               # Local Postgres
 ├── Dockerfile                       # Multi-stage production build
 ├── sqlc.yml                         # SQL code generation config
@@ -82,10 +90,10 @@ motophoto/
 
 ### Prerequisites
 
-- **Go 1.25+** — backend
-- **Bun** — frontend package manager and runtime
+- **Go 1.26+** — backend
+- **Bun** — frontend package manager, runtime, and dev scripts
 - **Docker** — local PostgreSQL
-- **Task** — task runner ([taskfile.dev](https://taskfile.dev))
+- **just** — task runner ([just.systems](https://just.systems))
 - **Air** — Go hot-reload (installed via `go install`)
 - **sqlc** — SQL code generation (installed via `go install`)
 
@@ -105,33 +113,37 @@ cd web && bun install && cd ..
 cp .env.example .env
 
 # 5. Start both dev servers
-task dev
+just dev
 ```
 
-This runs Air (Go hot-reload on :8080) and Vite (SvelteKit on :5173) concurrently.
+This runs Air (Go hot-reload on :3001) and Vite (SvelteKit on :5173) concurrently.
 
-### Task Commands
+### Just Commands
 
-All commands are defined in `Taskfile.yml`:
+All commands are defined in `Justfile`:
 
 | Command | What it does |
 |---------|-------------|
-| `task dev` | Start both backend (Air) and frontend (Vite) dev servers |
-| `task build` | Full production build (frontend + backend) |
-| `task build-backend` | Compile Go binary |
-| `task build-frontend` | Build SvelteKit |
-| `task check` | `go vet` + `svelte-check` |
-| `task lint` | `golangci-lint` + `eslint` |
-| `task test` | Run Go tests |
-| `task generate` | Run sqlc code generation |
-| `task docker-build` | Build Docker image |
+| `just dev` | Start both backend (Air) and frontend (Vite) dev servers |
+| `just dev -f` | Frontend only |
+| `just dev -b` | Backend only |
+| `just build` | Full production build (frontend + backend) |
+| `just check` | Parallel: `go vet` + `go build` + `go test` + `svelte-check` + `eslint` |
+| `just check --fix` | Auto-format then verify |
+| `just lint` | `eslint` + `go vet` |
+| `just test` | Run Go tests |
+| `just format` | `gofmt` + `eslint --fix` |
+| `just generate` | Run sqlc code generation |
+| `just docker-build` | Build Docker image |
+| `just db` | Start local Postgres |
+| `just db reset` | Drop and recreate database |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | (see `.env.example`) | PostgreSQL connection string |
-| `PORT` | `8080` | Go server listen port |
+| `PORT` | `3001` | Go server listen port |
 
 ## Database
 
@@ -147,9 +159,11 @@ The database layer (pgx pool + sqlc generated queries) exists but is **not yet w
 
 The `Dockerfile` uses a 3-stage build:
 
-1. **Node stage** — installs Bun, builds SvelteKit (`bun run build`)
-2. **Go stage** — compiles the Go binary, compresses with UPX
-3. **Runtime stage** — Alpine with the compiled binary + frontend build output
+1. **Go stage** (`golang:1.26-alpine`) — compiles the Go binary, compresses with UPX
+2. **Frontend stage** (`oven/bun:1`) — builds SvelteKit with `bun run build`
+3. **Runtime stage** (`oven/bun:1-slim`) — Bun runtime with the Go binary, SvelteKit build output, and `web/entrypoint.ts` as the entrypoint
+
+The runtime container runs `bun run /app/web/entrypoint.ts`, which starts the Go backend on port 3001, waits for health, then starts SvelteKit SSR on the public port.
 
 ### CI/CD
 

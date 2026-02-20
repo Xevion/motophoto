@@ -101,9 +101,9 @@ slog.Error("database query failed", "error", err, "query", "ListEvents")
 ### URL Structure
 
 ```
+/api/health                 # Health check (no versioning)
 /api/v1/{resource}          # Collection
 /api/v1/{resource}/{id}     # Individual item
-/health                     # Health check (no versioning)
 ```
 
 ### Response Format
@@ -141,4 +141,4 @@ All API responses return JSON. Collections return arrays, individual items retur
 
 - Go tests live alongside the code they test (`foo_test.go` next to `foo.go`)
 - Frontend tests (when added) go in `web/src/**/*.test.ts`
-- Run `task test` before pushing — CI will catch failures, but it's faster to catch locally
+- Run `just test` before pushing — CI will catch failures, but it's faster to catch locally

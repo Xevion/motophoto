@@ -6,7 +6,7 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 
 ### Prerequisites
 
-- **Go 1.25+** — `go version` to check
+- **Go 1.26+** — `go version` to check
 - **Air** — hot-reload for development: `go install github.com/air-verse/air@latest`
 - **sqlc** — SQL code generation: `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 - **Docker** — for local PostgreSQL
@@ -18,7 +18,7 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 air
 
 # Start both backend + frontend together
-task dev
+just dev
 ```
 
 Air watches for Go file changes and rebuilds automatically. Config is in `.air.toml`.
@@ -26,8 +26,7 @@ Air watches for Go file changes and rebuilds automatically. Config is in `.air.t
 ### Building
 
 ```bash
-task build-backend    # Compile Go binary
-task build            # Full build (frontend + backend)
+just build            # Full build (frontend + backend)
 ```
 
 ## Project Structure
@@ -77,9 +76,9 @@ The server uses Chi (`go-chi/chi/v5`) with this middleware stack (order matters)
 ### Current Routes
 
 ```
-GET  /health            → {"status": "ok"}
-GET  /api/v1/events     → list of demo events
-GET  /api/v1/events/{id} → single demo event
+GET  /api/health          → {"status": "ok"}
+GET  /api/v1/events       → list of demo events
+GET  /api/v1/events/{id}  → single demo event
 ```
 
 These currently return hardcoded data. The database layer will replace this.
@@ -157,7 +156,7 @@ The database layer uses **pgx/v5** (connection pool) with **sqlc** for type-safe
 When you need to add or change database queries:
 
 1. Write or edit SQL in `internal/database/queries/*.sql`
-2. Run `task generate` to regenerate Go code in `internal/database/db/`
+2. Run `just generate` to regenerate Go code in `internal/database/db/`
 3. Use the generated functions in your handlers
 4. **Never hand-edit files in `internal/database/db/`** — they're overwritten on every generate
 
@@ -222,17 +221,16 @@ See [STYLE.md](STYLE.md) for log level guidelines.
 
 ## Linting
 
-Two linters are configured:
+Linting:
 
-- **golangci-lint** — runs via `task lint`
-- **revive** — Go-specific linter, config in `revive.toml` (28 rules)
+- **`go vet`** — runs as part of `just check` and `just lint`
 
-Run `task check` for `go vet` + `svelte-check`, or `task lint` for the full linting suite.
+Run `just check` for parallel verification (`go vet` + `go build` + `go test` + `svelte-check` + `eslint`), or `just lint` for just `eslint` + `go vet`.
 
 ## Testing
 
 ```bash
-task test             # Run all Go tests
+just test             # Run all Go tests
 go test ./...         # Equivalent
 go test ./internal/server/...  # Test specific package
 ```
