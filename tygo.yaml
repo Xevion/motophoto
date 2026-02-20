@@ -1,0 +1,11 @@
+packages:
+  - path: "github.com/Xevion/motophoto/internal/server"
+    output_path: "web/src/lib/types.gen.ts"
+    include_files:
+      - "types.go"
+    type_mappings:
+      time.Time: "string"
+      uuid.UUID: "string"
+      pgtype.Text: "string | null"
+      pgtype.Int4: "number | null"
+      pgtype.Timestamptz: "string | null"

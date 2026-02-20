@@ -36,6 +36,10 @@ build:
     bun run --cwd web build
     go build -o motophoto .
 
+# Generate TypeScript bindings from Go types
+bindings:
+    tygo generate
+
 # Run sqlc code generation
 generate:
     sqlc generate

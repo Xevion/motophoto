@@ -25,12 +25,27 @@ Flags:
 	process.exit(0);
 }
 
-if (flags.fix) {
-	console.log(c('1;36', '→ Fixing...'));
-	runPiped(['gofmt', '-w', '.']);
-	runPiped(['bun', 'run', '--cwd', 'web', 'lint:fix']);
-	console.log(c('1;36', '→ Verifying...'));
+function runStep(name: string, subsystem: 'frontend' | 'backend', cmd: string[], opts?: { cwd?: string }) {
+	const t0 = Date.now();
+	const result = runPiped(cmd, { cwd: opts?.cwd });
+	const dt = ((Date.now() - t0) / 1000).toFixed(1);
+	const subsystemLabel = c('2', `[${subsystem}]`);
+	if (result.exitCode !== 0) {
+		process.stdout.write(c('31', `✗ ${name}`) + ` ${subsystemLabel} (${dt}s)\n`);
+		if (result.stdout) process.stdout.write(result.stdout);
+		if (result.stderr) process.stderr.write(result.stderr);
+		process.exit(1);
+	}
+	process.stdout.write(c('32', `✓ ${name}`) + ` ${subsystemLabel} (${dt}s)\n`);
 }
+
+if (flags.fix) {
+	runStep('fix-gofmt', 'backend', ['gofmt', '-w', '.']);
+	runStep('fix-eslint', 'frontend', ['bun', 'run', '--cwd', 'web', 'lint:fix']);
+}
+
+// Generate TypeScript bindings from Go types before running checks
+runStep('generate-bindings', 'backend', ['tygo', 'generate']);
 
 interface Check {
 	name: string;

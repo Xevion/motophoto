@@ -1,14 +1,5 @@
-export interface Event {
-	id: number;
-	name: string;
-	sport: string;
-	location: string;
-	date: string;
-	photo_count: number;
-	galleries: number;
-	description: string;
-	tags: string[];
-}
+export type { Event } from './types.gen';
+import type { Event } from './types.gen';
 
 export interface EventsResponse {
 	events: Event[];
