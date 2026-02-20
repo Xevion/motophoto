@@ -97,6 +97,12 @@ motophoto/
 - **Air** — Go hot-reload (installed via `go install`)
 - **sqlc** — SQL code generation (installed via `go install`)
 
+Install all CLI tools at once with [mise](https://mise.jdx.dev):
+
+```bash
+mise use -g bun air go just
+```
+
 ### Getting Started
 
 ```bash
