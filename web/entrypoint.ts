@@ -1,7 +1,8 @@
 import { type Subprocess, spawn } from 'bun';
 
 const PORT = process.env.PORT || '8080';
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_PORT = '3001';
+const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
 function log(level: 'info' | 'error', message: string, fields?: Record<string, unknown>) {
 	const entry = {
@@ -18,7 +19,7 @@ function log(level: 'info' | 'error', message: string, fields?: Record<string, u
 log('info', 'Starting Go backend');
 const goProc = spawn({
 	cmd: ['/app/motophoto'],
-	env: process.env,
+	env: { ...process.env, PORT: BACKEND_PORT },
 	stdout: 'inherit',
 	stderr: 'inherit'
 });
