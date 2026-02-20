@@ -1,0 +1,47 @@
+# Git
+.git/
+.github/
+.gitignore
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go build artifacts
+tmp/
+motophoto
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Frontend build artifacts
+web/node_modules/
+web/.svelte-kit/
+web/build/
+web/.eslintcache
+
+# Documentation & config not needed in build
+docs/
+README.md
+LICENSE
+AGENTS.md
+CLAUDE.md
+renovate.json
+
+# Docker
+docker-compose.yml
+Dockerfile
