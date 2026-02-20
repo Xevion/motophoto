@@ -113,6 +113,20 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* View Transitions API - Theme Toggle Animation */
+/* Suppress all named view-transition elements during theme transition */
+.theme-transitioning * {
+  view-transition-name: none !important;
+}
+
+/* Disable default view-transition animations on root so the circular
+   clip-path animation driven from JS is the only visual effect. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

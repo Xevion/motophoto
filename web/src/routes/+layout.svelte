@@ -2,18 +2,18 @@
 	import "../app.css";
 	import favicon from "$lib/assets/favicon.svg";
 	import { resolve } from "$app/paths";
-	import { ModeWatcher } from "mode-watcher";
-	import ModeToggle from "$lib/components/mode-toggle.svelte";
+	import { themeStore } from "$lib/stores/theme.svelte";
+	import ThemeToggle from "$lib/components/theme-toggle.svelte";
 	import type { Snippet } from "svelte";
 
 	let { children }: { children: Snippet } = $props();
+
+	themeStore.init();
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
-
-<ModeWatcher defaultMode="dark" />
 
 <div class="min-h-screen bg-background text-foreground">
 	<header class="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -23,7 +23,7 @@
 					MotoPhoto
 				</span>
 			</a>
-			<ModeToggle />
+			<ThemeToggle />
 		</div>
 	</header>
 
