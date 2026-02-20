@@ -2,9 +2,23 @@
  * Shared process spawning utilities.
  */
 
-import { elapsed } from "./fmt";
+import { elapsed, c } from "./fmt";
 
 const baseEnv = { ...process.env, CI: "1" };
+
+/**
+ * Check whether a CLI tool is available on PATH.
+ */
+export function hasTool(cmd: string): boolean {
+	return Bun.spawnSync(["which", cmd], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
+}
+
+/**
+ * Print a warning for a missing tool, pointing to local setup docs.
+ */
+export function warnMissingTool(cmd: string, consequence: string): void {
+	process.stderr.write(`${c("33", `⚠ ${cmd} not found`)}, ${consequence} — see docs/SETUP.md\n`);
+}
 
 export interface CollectResult {
 	stdout: string;

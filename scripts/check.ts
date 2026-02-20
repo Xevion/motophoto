@@ -5,7 +5,7 @@
  */
 
 import { c, elapsed, isStderrTTY, parseFlags } from './lib/fmt';
-import { type CollectResult, raceInOrder, runPiped, spawnCollect } from './lib/proc';
+import { type CollectResult, hasTool, raceInOrder, runPiped, spawnCollect, warnMissingTool } from './lib/proc';
 
 const { flags } = parseFlags(
 	process.argv.slice(2),
@@ -39,13 +39,24 @@ function runStep(name: string, subsystem: 'frontend' | 'backend', cmd: string[],
 	process.stdout.write(c('32', `✓ ${name}`) + ` ${subsystemLabel} (${dt}s)\n`);
 }
 
+// Detect available tools
+const hasGo = hasTool("go");
+const hasTygo = hasTool("tygo");
+const hasLinter = hasTool("golangci-lint");
+
+if (!hasGo) warnMissingTool("go", "skipping backend checks");
+if (!hasTygo) warnMissingTool("tygo", "skipping binding generation");
+if (!hasLinter) warnMissingTool("golangci-lint", "skipping backend lint");
+
 if (flags.fix) {
-	runStep('fix-gofmt', 'backend', ['gofmt', '-w', '.']);
+	if (hasGo) runStep('fix-gofmt', 'backend', ['gofmt', '-w', '.']);
 	runStep('fix-eslint', 'frontend', ['bun', 'run', '--cwd', 'web', 'lint:fix']);
 }
 
 // Generate TypeScript bindings from Go types before running checks
-runStep('generate-bindings', 'backend', ['tygo', 'generate']);
+if (hasTygo) {
+	runStep('generate-bindings', 'backend', ['tygo', 'generate']);
+}
 
 interface Check {
 	name: string;
@@ -67,22 +78,24 @@ const checks: Check[] = [
 		subsystem: 'frontend',
 		cmd: ['bun', 'run', '--cwd', 'web', 'lint']
 	},
-	// Backend checks
-	{
+	// Backend checks (conditional on tool availability)
+	...(hasLinter ? [{
 		name: 'backend-lint',
-		subsystem: 'backend',
+		subsystem: 'backend' as const,
 		cmd: ['golangci-lint', 'run', '--timeout=5m']
-	},
-	{
-		name: 'backend-build',
-		subsystem: 'backend',
-		cmd: ['go', 'build', '-o', '/dev/null', '.']
-	},
-	{
-		name: 'backend-test',
-		subsystem: 'backend',
-		cmd: ['go', 'test', './...']
-	},
+	}] : []),
+	...(hasGo ? [
+		{
+			name: 'backend-build',
+			subsystem: 'backend' as const,
+			cmd: ['go', 'build', '-o', '/dev/null', '.']
+		},
+		{
+			name: 'backend-test',
+			subsystem: 'backend' as const,
+			cmd: ['go', 'test', './...']
+		},
+	] : []),
 ];
 
 const start = Date.now();

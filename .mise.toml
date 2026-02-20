@@ -1,0 +1,13 @@
+[tools]
+# Runtimes
+go = "1.26.0"
+bun = "1.3.9"
+
+# Dev tools
+just = "1.46.0"
+golangci-lint = "2.10.1"
+air = "1.64.5"
+
+# Go-based tools (installed via `go install` backend)
+"go:github.com/gzuidhof/tygo" = "0.2.21"
+"go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "1.30.0"

@@ -9,7 +9,7 @@
  */
 
 import { parseFlags, c } from "./lib/fmt";
-import { ProcessGroup } from "./lib/proc";
+import { ProcessGroup, hasTool, warnMissingTool } from "./lib/proc";
 
 const { flags } = parseFlags(
 	process.argv.slice(2),
@@ -42,10 +42,15 @@ if (runFrontend) {
 }
 
 if (runBackend) {
-	console.log(c("1;36", "→ Starting backend dev server (Air)..."));
-	group.spawn(["air", "-build.send_interrupt", "true"], {
-		env: { ...process.env, PORT: "3001" },
-	});
+	if (!hasTool("air")) {
+		warnMissingTool("air", backendOnly ? "cannot start backend" : "skipping backend");
+		if (backendOnly) process.exit(1);
+	} else {
+		console.log(c("1;36", "→ Starting backend dev server (Air)..."));
+		group.spawn(["air", "-build.send_interrupt", "true"], {
+			env: { ...process.env, PORT: "3001" },
+		});
+	}
 }
 
 const code = await group.waitForFirst();
