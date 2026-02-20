@@ -4,22 +4,49 @@ const PORT = process.env.PORT || '8080';
 const BACKEND_PORT = '3001';
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
-function log(level: 'info' | 'error', message: string, fields?: Record<string, unknown>) {
-	const entry = {
-		timestamp: new Date().toISOString(),
-		level,
-		target: 'motophoto::entrypoint',
-		message,
-		...fields
-	};
-	const out = level === 'error' ? process.stderr : process.stdout;
-	out.write(JSON.stringify(entry) + '\n');
+// Logging defaults: JSON in production (entrypoint only runs in Docker).
+// Both the Go backend and SvelteKit frontend read LOG_JSON identically,
+// so we normalize once here and propagate via env to both subprocesses.
+const LOG_JSON = process.env.LOG_JSON ?? 'true';
+const LOG_LEVEL = process.env.LOG_LEVEL;
+
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+function log(level: LogLevel, message: string, fields?: Record<string, unknown>) {
+	if (LOG_JSON === 'true' || LOG_JSON === '1') {
+		const entry = {
+			timestamp: new Date().toISOString(),
+			level,
+			target: 'motophoto::entrypoint',
+			message,
+			...fields
+		};
+		const out = level === 'error' ? process.stderr : process.stdout;
+		out.write(JSON.stringify(entry) + '\n');
+	} else {
+		const prefix = level === 'error' ? 'ERROR: ' : '';
+		const suffix = fields
+			? ` ${Object.entries(fields)
+					.map(([k, v]) => `${k}=${v}`)
+					.join(' ')}`
+			: '';
+		const out = level === 'error' ? console.error : console.log;
+		out(`${prefix}${message}${suffix}`);
+	}
+}
+
+const sharedEnv: Record<string, string | undefined> = {
+	...process.env,
+	LOG_JSON
+};
+if (LOG_LEVEL) {
+	sharedEnv.LOG_LEVEL = LOG_LEVEL;
 }
 
 log('info', 'Starting Go backend');
 const goProc = spawn({
 	cmd: ['/app/motophoto'],
-	env: { ...process.env, PORT: BACKEND_PORT },
+	env: { ...sharedEnv, PORT: BACKEND_PORT },
 	stdout: 'inherit',
 	stderr: 'inherit'
 });
@@ -54,7 +81,7 @@ const bunProc = spawn({
 	cmd: ['bun', 'build/index.js'],
 	cwd: '/app/web',
 	env: {
-		...process.env,
+		...sharedEnv,
 		PORT,
 		HOST: '0.0.0.0',
 		BACKEND_URL

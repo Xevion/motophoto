@@ -43,7 +43,9 @@ if (runFrontend) {
 
 if (runBackend) {
 	console.log(c("1;36", "→ Starting backend dev server (Air)..."));
-	group.spawn(["air", "-build.send_interrupt", "true"]);
+	group.spawn(["air", "-build.send_interrupt", "true"], {
+		env: { ...process.env, PORT: "3001" },
+	});
 }
 
 const code = await group.waitForFirst();

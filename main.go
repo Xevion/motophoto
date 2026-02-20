@@ -6,22 +6,65 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/lmittmann/tint"
 
 	"github.com/Xevion/motophoto/internal/server"
 )
+
+// shouldUseJSON returns true when structured JSON logging should be used.
+//
+// Priority:
+//  1. LOG_JSON env var explicitly set → use that value
+//  2. Otherwise → pretty (the Docker entrypoint sets LOG_JSON=true explicitly)
+func shouldUseJSON() bool {
+	v, ok := os.LookupEnv("LOG_JSON")
+	if ok {
+		return v == "true" || v == "1"
+	}
+	return false
+}
+
+// parseLogLevel converts a LOG_LEVEL env value to an slog.Level.
+// Falls back to Info if unset or unrecognized.
+func parseLogLevel() slog.Level {
+	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func initLogging() {
+	level := parseLogLevel()
+
+	var handler slog.Handler
+	if shouldUseJSON() {
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = tint.NewHandler(os.Stderr, &tint.Options{
+			Level:      level,
+			TimeFormat: time.TimeOnly,
+		})
+	}
+
+	slog.SetDefault(slog.New(handler))
+}
 
 func main() {
 	// Load .env if present (ignored in production where env vars are set directly)
 	_ = godotenv.Load()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
+	initLogging()
 
 	srv, err := server.New()
 	if err != nil {

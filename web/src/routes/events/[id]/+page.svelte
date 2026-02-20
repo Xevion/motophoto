@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import type { PageData } from "./$types";
+	import { resolve } from "$app/paths";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Button } from "$lib/components/ui/button/index.js";
+	import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -8,137 +12,53 @@
 	<title>{data.event.name} — MotoPhoto</title>
 </svelte:head>
 
-<main>
-	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-	<a href="/" class="back">&larr; All events</a>
+<div class="max-w-3xl space-y-6">
+	<div>
+		<Button variant="ghost" size="sm" href={resolve("/")} class="gap-1 text-muted-foreground hover:text-primary">
+			<ArrowLeft class="h-4 w-4" />
+			All events
+		</Button>
+	</div>
 
-	<header>
-		<span class="sport">{data.event.sport}</span>
-		<h1>{data.event.name}</h1>
-		<p class="meta">
+	<header class="space-y-2">
+		<div class="text-xs font-semibold uppercase tracking-wider text-primary">
+			{data.event.sport}
+		</div>
+		<h1 class="text-3xl font-bold tracking-tight">
+			{data.event.name}
+		</h1>
+		<p class="text-muted-foreground">
 			{data.event.location} &middot;
-			{new Date(data.event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+			{new Date(data.event.date).toLocaleDateString("en-US", {
+				month: "long",
+				day: "numeric",
+				year: "numeric",
+			})}
 		</p>
 	</header>
 
-	<p class="description">{data.event.description}</p>
+	<p class="text-muted-foreground leading-relaxed">
+		{data.event.description}
+	</p>
 
-	<div class="stats">
-		<div class="stat">
-			<span class="stat-value">{data.event.photo_count.toLocaleString()}</span>
-			<span class="stat-label">Photos</span>
+	<div class="flex gap-8">
+		<div class="space-y-0.5">
+			<div class="text-2xl font-bold">{data.event.photo_count.toLocaleString()}</div>
+			<div class="text-xs text-muted-foreground">Photos</div>
 		</div>
-		<div class="stat">
-			<span class="stat-value">{data.event.galleries}</span>
-			<span class="stat-label">{data.event.galleries === 1 ? 'Gallery' : 'Galleries'}</span>
+		<div class="space-y-0.5">
+			<div class="text-2xl font-bold">{data.event.galleries}</div>
+			<div class="text-xs text-muted-foreground">{data.event.galleries === 1 ? "Gallery" : "Galleries"}</div>
 		</div>
 	</div>
 
-	<div class="tags">
+	<div class="flex flex-wrap gap-2">
 		{#each data.event.tags as tag (tag)}
-			<span class="tag">{tag}</span>
+			<Badge variant="secondary">{tag}</Badge>
 		{/each}
 	</div>
 
-	<section class="placeholder">
+	<div class="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
 		<p>Gallery grid will go here once photo uploads are wired up.</p>
-	</section>
-</main>
-
-<style>
-	:global(body) {
-		margin: 0;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		background: #0a0a0a;
-		color: #e5e5e5;
-	}
-
-	main {
-		max-width: 720px;
-		margin: 0 auto;
-		padding: 2rem 1rem;
-	}
-
-	.back {
-		color: #737373;
-		text-decoration: none;
-		font-size: 0.9rem;
-	}
-
-	.back:hover {
-		color: #f97316;
-	}
-
-	header {
-		margin-top: 1.5rem;
-	}
-
-	.sport {
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #f97316;
-		font-weight: 600;
-	}
-
-	h1 {
-		font-size: 2rem;
-		margin: 0.25rem 0;
-	}
-
-	.meta {
-		color: #737373;
-		font-size: 0.95rem;
-	}
-
-	.description {
-		color: #a3a3a3;
-		line-height: 1.5;
-		margin: 1.5rem 0;
-	}
-
-	.stats {
-		display: flex;
-		gap: 2rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.stat {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.stat-value {
-		font-size: 1.5rem;
-		font-weight: 700;
-	}
-
-	.stat-label {
-		font-size: 0.8rem;
-		color: #737373;
-	}
-
-	.tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin-bottom: 2rem;
-	}
-
-	.tag {
-		font-size: 0.75rem;
-		padding: 0.2rem 0.6rem;
-		background: #1e1e1e;
-		border: 1px solid #333;
-		border-radius: 99px;
-		color: #a3a3a3;
-	}
-
-	.placeholder {
-		padding: 3rem;
-		text-align: center;
-		border: 1px dashed #333;
-		border-radius: 8px;
-		color: #525252;
-	}
-</style>
+	</div>
+</div>

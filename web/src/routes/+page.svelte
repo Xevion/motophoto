@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import type { PageData } from "./$types";
+	import { resolve } from "$app/paths";
+	import { Badge } from "$lib/components/ui/badge/index.js";
+	import * as Card from "$lib/components/ui/card/index.js";
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -8,168 +11,64 @@
 	<title>MotoPhoto — Event Photography Marketplace</title>
 </svelte:head>
 
-<main>
-	<header>
-		<h1>MotoPhoto</h1>
-		<p class="tagline">Find your moment. Every event. Every angle.</p>
-		<p class="status">
-			Backend: <span class="badge" class:ok={data.backendStatus === 'ok'}>{data.backendStatus}</span>
+<div class="space-y-8">
+	<section class="text-center space-y-3">
+		<h1 class="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-red-500 bg-clip-text text-transparent">
+			MotoPhoto
+		</h1>
+		<p class="text-muted-foreground text-lg">
+			Find your moment. Every event. Every angle.
 		</p>
-	</header>
+		<p class="text-sm text-muted-foreground">
+			Backend:
+			<Badge variant={data.backendStatus === "ok" ? "default" : "destructive"} class={data.backendStatus === "ok" ? "bg-green-900 text-green-400 hover:bg-green-900" : ""}>
+				{data.backendStatus}
+			</Badge>
+		</p>
+	</section>
 
-	<section class="events">
-		<h2>Upcoming Events ({data.total})</h2>
-		<div class="grid">
-		{#each data.events as event (event.id)}
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-			<a href="/events/{event.id}" class="card">
-					<div class="card-sport">{event.sport}</div>
-					<h3>{event.name}</h3>
-					<p class="meta">{event.location}</p>
-					<p class="meta">{new Date(event.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-					<p class="description">{event.description}</p>
-					<div class="stats">
-						<span>{event.photo_count.toLocaleString()} photos</span>
-						<span>{event.galleries} {event.galleries === 1 ? 'gallery' : 'galleries'}</span>
-					</div>
-					<div class="tags">
-						{#each event.tags as tag (tag)}
-							<span class="tag">{tag}</span>
-						{/each}
-					</div>
+	<section class="space-y-4">
+		<h2 class="text-xl font-semibold">Upcoming Events ({data.total})</h2>
+
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			{#each data.events as event (event.id)}
+				<a href={resolve(`/events/${event.id}`)} class="group block">
+					<Card.Root class="h-full transition-colors hover:border-primary">
+						<Card.Header class="pb-3">
+							<div class="text-xs font-semibold uppercase tracking-wider text-primary">
+								{event.sport}
+							</div>
+							<Card.Title class="text-base leading-snug">
+								{event.name}
+							</Card.Title>
+							<Card.Description>
+								{event.location}
+							</Card.Description>
+						</Card.Header>
+						<Card.Content class="space-y-3 pt-0">
+							<p class="text-sm text-muted-foreground">
+								{new Date(event.date).toLocaleDateString("en-US", {
+									month: "long",
+									day: "numeric",
+									year: "numeric",
+								})}
+							</p>
+							<p class="text-sm text-muted-foreground line-clamp-2">
+								{event.description}
+							</p>
+							<div class="flex gap-3 text-xs text-muted-foreground">
+								<span>{event.photo_count.toLocaleString()} photos</span>
+								<span>{event.galleries} {event.galleries === 1 ? "gallery" : "galleries"}</span>
+							</div>
+							<div class="flex flex-wrap gap-1.5">
+								{#each event.tags as tag (tag)}
+									<Badge variant="secondary" class="text-xs">{tag}</Badge>
+								{/each}
+							</div>
+						</Card.Content>
+					</Card.Root>
 				</a>
 			{/each}
 		</div>
 	</section>
-</main>
-
-<style>
-	:global(body) {
-		margin: 0;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		background: #0a0a0a;
-		color: #e5e5e5;
-	}
-
-	main {
-		max-width: 960px;
-		margin: 0 auto;
-		padding: 2rem 1rem;
-	}
-
-	header {
-		text-align: center;
-		margin-bottom: 3rem;
-	}
-
-	h1 {
-		font-size: 2.5rem;
-		margin: 0;
-		background: linear-gradient(135deg, #f97316, #ef4444);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-
-	.tagline {
-		color: #a3a3a3;
-		font-size: 1.1rem;
-		margin-top: 0.5rem;
-	}
-
-	.status {
-		font-size: 0.85rem;
-		color: #737373;
-	}
-
-	.badge {
-		padding: 0.15rem 0.5rem;
-		border-radius: 4px;
-		background: #333;
-		font-family: monospace;
-	}
-
-	.badge.ok {
-		background: #14532d;
-		color: #4ade80;
-	}
-
-	h2 {
-		font-size: 1.4rem;
-		margin-bottom: 1.5rem;
-		color: #d4d4d4;
-	}
-
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: 1.25rem;
-	}
-
-	.card {
-		background: #171717;
-		border: 1px solid #262626;
-		border-radius: 8px;
-		padding: 1.25rem;
-		text-decoration: none;
-		color: inherit;
-		transition: border-color 0.15s;
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-
-	.card:hover {
-		border-color: #f97316;
-	}
-
-	.card-sport {
-		font-size: 0.75rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: #f97316;
-		font-weight: 600;
-	}
-
-	.card h3 {
-		margin: 0;
-		font-size: 1.1rem;
-	}
-
-	.meta {
-		margin: 0;
-		font-size: 0.85rem;
-		color: #737373;
-	}
-
-	.description {
-		margin: 0.25rem 0;
-		font-size: 0.9rem;
-		color: #a3a3a3;
-		line-height: 1.4;
-	}
-
-	.stats {
-		display: flex;
-		gap: 1rem;
-		font-size: 0.8rem;
-		color: #a3a3a3;
-		margin-top: 0.5rem;
-	}
-
-	.tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
-		margin-top: 0.5rem;
-	}
-
-	.tag {
-		font-size: 0.7rem;
-		padding: 0.15rem 0.5rem;
-		background: #1e1e1e;
-		border: 1px solid #333;
-		border-radius: 99px;
-		color: #a3a3a3;
-	}
-</style>
+</div>
