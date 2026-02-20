@@ -64,5 +64,10 @@ export default tseslint.config(
 	{
 		files: ['**/*.js'],
 		...tseslint.configs.disableTypeChecked
+	},
+	// Disable type-checked rules for files not in tsconfig
+	{
+		files: ['entrypoint.ts'],
+		...tseslint.configs.disableTypeChecked
 	}
 );
