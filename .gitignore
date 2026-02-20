@@ -1,0 +1,42 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+tmp/
+motophoto
+
+# Logs
+*.log
+build-errors.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.db-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node (web/)
+web/node_modules/
+web/.svelte-kit/
+web/build/
+
+# Go workspace
+go.work
+go.work.sum
