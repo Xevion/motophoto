@@ -107,14 +107,14 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
-func writeServiceError(w http.ResponseWriter, err error, action string) {
+func writeServiceError(w http.ResponseWriter, r *http.Request, err error, action string) {
 	switch {
 	case errors.Is(err, service.ErrNotFound):
 		writeError(w, http.StatusNotFound, "not found")
 	case errors.Is(err, service.ErrConflict):
 		writeError(w, http.StatusConflict, "already exists")
 	default:
-		slog.Error(fmt.Sprintf("failed to %s", action), "error", err)
+		middleware.LoggerFromContext(r.Context()).Error("service action failed", "action", action, "error", err)
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to %s", action))
 	}
 }

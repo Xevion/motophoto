@@ -15,7 +15,7 @@ func (s *Server) handleListGalleries(w http.ResponseWriter, r *http.Request) {
 
 	galleries, err := s.galleries.List(r.Context(), eventID)
 	if err != nil {
-		writeServiceError(w, err, "list galleries")
+		writeServiceError(w, r, err, "list galleries")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (s *Server) handleCreateGallery(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description, SortOrder: req.SortOrder,
 	})
 	if err != nil {
-		writeServiceError(w, err, "create gallery")
+		writeServiceError(w, r, err, "create gallery")
 		return
 	}
 
@@ -70,7 +70,7 @@ func (s *Server) handleUpdateGallery(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description, SortOrder: req.SortOrder,
 	})
 	if err != nil {
-		writeServiceError(w, err, "update gallery")
+		writeServiceError(w, r, err, "update gallery")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (s *Server) handleDeleteGallery(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := s.galleries.Delete(r.Context(), eventID, id); err != nil {
-		writeServiceError(w, err, "delete gallery")
+		writeServiceError(w, r, err, "delete gallery")
 		return
 	}
 

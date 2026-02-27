@@ -10,6 +10,19 @@ import (
 	"github.com/google/uuid"
 )
 
+type contextKey string
+
+const loggerKey contextKey = "logger"
+
+// LoggerFromContext retrieves the request-scoped logger stored by RequestLogger.
+// Falls back to the default slog logger if none is found.
+func LoggerFromContext(ctx context.Context) *slog.Logger {
+	if l, ok := ctx.Value(loggerKey).(*slog.Logger); ok && l != nil {
+		return l
+	}
+	return slog.Default()
+}
+
 // wrappedWriter captures the status code written by a handler so we can
 // inspect it after the fact without consuming the response body.
 type wrappedWriter struct {
@@ -20,26 +33,6 @@ type wrappedWriter struct {
 func (w *wrappedWriter) WriteHeader(status int) {
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
-}
-
-// shouldLog reports whether a response status code warrants a log entry.
-// All 5xx responses are logged. Meaningful 4xx codes are logged; codes like
-// 301/304 that generate high volume and carry little diagnostic value are not.
-func shouldLog(status int) bool {
-	if status >= 500 {
-		return true
-	}
-	switch status {
-	case http.StatusBadRequest, // 400
-		http.StatusUnauthorized,        // 401
-		http.StatusForbidden,           // 403
-		http.StatusNotFound,            // 404
-		http.StatusMethodNotAllowed,    // 405
-		http.StatusUnprocessableEntity, // 422
-		http.StatusTooManyRequests:     // 429
-		return true
-	}
-	return false
 }
 
 // RequestID reads Railway's X-Railway-Request-Id header, falls back to the
@@ -66,27 +59,38 @@ func RequestID(next http.Handler) http.Handler {
 	})
 }
 
-// RequestLogger is a chi-compatible middleware that logs error responses using
-// the default slog logger, producing structured output consistent with the rest
-// of the application. Only 5xx responses and meaningful 4xx codes are logged.
+// RequestLogger is a chi-compatible middleware that logs every response using
+// the default slog logger with structured fields. Successful responses are
+// logged at Debug, client errors (4xx) at Warn, and server errors (5xx) at
+// Error. A request-scoped logger carrying the request_id is stored in context
+// so handlers can emit correlated log lines without repeating the field.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := &wrappedWriter{ResponseWriter: w, status: http.StatusOK}
 
-		next.ServeHTTP(ww, r)
+		reqID := chimiddleware.GetReqID(r.Context())
+		logger := slog.Default().With("request_id", reqID)
+		ctx := context.WithValue(r.Context(), loggerKey, logger)
 
-		if !shouldLog(ww.status) {
-			return
-		}
+		next.ServeHTTP(ww, r.WithContext(ctx))
 
-		slog.Error("request error",
+		attrs := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", ww.status,
 			"duration_ms", time.Since(start).Milliseconds(),
-			"request_id", chimiddleware.GetReqID(r.Context()),
+			"request_id", reqID,
 			"remote_addr", r.RemoteAddr,
-		)
+		}
+
+		switch {
+		case ww.status >= 500:
+			logger.Error("request error", attrs...)
+		case ww.status >= 400:
+			logger.Warn("request error", attrs...)
+		default:
+			logger.Debug("request", attrs...)
+		}
 	})
 }

@@ -36,7 +36,7 @@ func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.events.List(r.Context(), cursorSortOrder, cursorID, limit)
 	if err != nil {
-		writeServiceError(w, err, "list events")
+		writeServiceError(w, r, err, "list events")
 		return
 	}
 
@@ -58,7 +58,7 @@ func (s *Server) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 
 	result, err := s.events.Get(r.Context(), idOrSlug)
 	if err != nil {
-		writeServiceError(w, err, "get event")
+		writeServiceError(w, r, err, "get event")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		Date: req.Date, Status: req.Status, Tags: req.Tags,
 	})
 	if err != nil {
-		writeServiceError(w, err, "create event")
+		writeServiceError(w, r, err, "create event")
 		return
 	}
 
@@ -114,7 +114,7 @@ func (s *Server) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 		SortOrder: req.SortOrder,
 	})
 	if err != nil {
-		writeServiceError(w, err, "update event")
+		writeServiceError(w, r, err, "update event")
 		return
 	}
 
@@ -125,7 +125,7 @@ func (s *Server) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := s.events.Delete(r.Context(), id); err != nil {
-		writeServiceError(w, err, "delete event")
+		writeServiceError(w, r, err, "delete event")
 		return
 	}
 
