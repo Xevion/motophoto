@@ -25,9 +25,10 @@ func testDBConf() pgtestdb.Config {
 	// pgtestdb doesn't rely on that matching.
 	database := "motophoto"
 
-	// CI uses the standard Postgres port on localhost.
+	// CI uses the standard Postgres port and a different initial database name.
 	if os.Getenv("CI") == "true" {
 		port = "5432"
+		database = "motophoto_test"
 	}
 
 	return pgtestdb.Config{
