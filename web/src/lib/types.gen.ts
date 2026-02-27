@@ -64,3 +64,21 @@ export interface UpdateGalleryRequest {
   description?: string;
   sort_order?: number /* int32 */;
 }
+export interface LoginRequest {
+  email: string;
+
+  password: string;
+}
+export interface RegisterRequest {
+  email: string;
+
+  password: string;
+  display_name: string;
+  role: string;
+}
+export interface UserResponse {
+  id: string;
+  email: string;
+  display_name: string;
+  role: string;
+}

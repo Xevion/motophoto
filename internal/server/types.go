@@ -70,3 +70,24 @@ type UpdateGalleryRequest struct {
 	Description *string `json:"description"`
 	SortOrder   *int32  `json:"sort_order"`
 }
+
+type LoginRequest struct {
+	Email string `json:"email"    validate:"required,email"`
+	//nolint:gosec // G117: intentional request body field
+	Password string `json:"password" validate:"required"`
+}
+
+type RegisterRequest struct {
+	Email string `json:"email"        validate:"required,email"`
+	//nolint:gosec // G117: intentional request body field
+	Password    string `json:"password"     validate:"required,min=8"`
+	DisplayName string `json:"display_name" validate:"required"`
+	Role        string `json:"role"         validate:"required,oneof=photographer customer"`
+}
+
+type UserResponse struct {
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
+	Role        string `json:"role"`
+}

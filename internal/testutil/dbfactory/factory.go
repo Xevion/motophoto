@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	gonanoid "github.com/matoous/go-nanoid/v2"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/Xevion/motophoto/internal/database/db"
 	"github.com/Xevion/motophoto/internal/service"
@@ -26,6 +27,8 @@ type UserOpts struct {
 	Email       *string
 	DisplayName *string
 	Role        *string
+	Password    *string //nolint:gosec // test factory field, not a credential
+	Banned      bool    // if true, sets banned_at to now()
 }
 
 // User inserts a user row via the sqlc CreateUser query. Returns the user ID.
@@ -57,17 +60,33 @@ func User(ctx context.Context, t *testing.T, pool *pgxpool.Pool, opts *UserOpts)
 		}
 	}
 
+	passwordHash := "hash-not-used-in-tests"
+	if opts != nil && opts.Password != nil {
+		h, hashErr := bcrypt.GenerateFromPassword([]byte(*opts.Password), bcrypt.MinCost)
+		if hashErr != nil {
+			t.Fatalf("dbfactory.User: hash password: %v", hashErr)
+		}
+		passwordHash = string(h)
+	}
+
 	q := db.New(pool)
 	_, err = q.CreateUser(ctx, db.CreateUserParams{
 		ID:           id,
 		Email:        email,
-		PasswordHash: "hash-not-used-in-tests",
+		PasswordHash: passwordHash,
 		DisplayName:  displayName,
 		Role:         role,
 	})
 	if err != nil {
 		t.Fatalf("dbfactory.User: insert: %v", err)
 	}
+
+	if opts != nil && opts.Banned {
+		if err = q.BanUser(ctx, id); err != nil {
+			t.Fatalf("dbfactory.User: ban user: %v", err)
+		}
+	}
+
 	return id
 }
 

@@ -9,6 +9,15 @@ import (
 	"context"
 )
 
+const banUser = `-- name: BanUser :exec
+UPDATE users SET banned_at = now() WHERE id = $1
+`
+
+func (q *Queries) BanUser(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, banUser, id)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, email, password_hash, display_name, role)
 VALUES ($1, $2, $3, $4, $5)
@@ -31,6 +40,29 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.DisplayName,
 		arg.Role,
 	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.DisplayName,
+		&i.Role,
+		&i.BannedAt,
+		&i.EmailVerifiedAt,
+		&i.PasswordResetToken,
+		&i.PasswordResetExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, password_hash, display_name, role, banned_at, email_verified_at, password_reset_token, password_reset_expires_at, created_at, updated_at FROM users WHERE email = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,

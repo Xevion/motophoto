@@ -25,6 +25,7 @@ import (
 type Server struct {
 	router    *chi.Mux
 	db        *pgxpool.Pool
+	queries   *db.Queries
 	events    *service.EventService
 	galleries *service.GalleryService
 	sessions  *scs.SessionManager
@@ -42,6 +43,7 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 		router:    chi.NewRouter(),
 		port:      port,
 		db:        pool,
+		queries:   q,
 		events:    service.NewEventService(q),
 		galleries: service.NewGalleryService(q),
 		sessions:  sessions,
@@ -78,6 +80,10 @@ func (s *Server) setupRoutes() {
 		})
 
 		r.Route("/v1", func(r chi.Router) {
+			r.Post("/auth/register", s.handleRegister)
+			r.Post("/auth/login", s.handleLogin)
+			r.Post("/auth/logout", s.handleLogout)
+
 			r.Get("/events", s.handleListEvents)
 			r.Post("/events", s.handleCreateEvent)
 			r.Get("/events/{id}", s.handleGetEvent)
