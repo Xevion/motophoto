@@ -4,7 +4,7 @@
 
 import { elapsed, c } from "./fmt";
 
-const baseEnv = { ...process.env, CI: "1" };
+const baseEnv = { ...process.env };
 
 /**
  * Check whether a CLI tool is available on PATH.
@@ -14,10 +14,32 @@ export function hasTool(cmd: string): boolean {
 }
 
 /**
- * Print a warning for a missing tool, pointing to local setup docs.
+ * Print a warning for a missing tool, pointing to setup docs.
  */
 export function warnMissingTool(cmd: string, consequence: string): void {
-	process.stderr.write(`${c("33", `⚠ ${cmd} not found`)}, ${consequence} — see docs/SETUP.md\n`);
+	process.stderr.write(`${c("33", `⚠ ${cmd} not found`)}, ${consequence} — see README.md\n`);
+}
+
+/**
+ * Returns true if the Docker daemon is reachable.
+ */
+export function hasDockerDaemon(): boolean {
+	return hasTool("docker") &&
+		Bun.spawnSync(["docker", "info"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
+}
+
+/**
+ * Exit with a clear message if running natively on Windows (not WSL).
+ * WSL reports process.platform as 'linux', so this only triggers for CMD/PowerShell/Git Bash.
+ */
+export function assertNotWindowsNative(): void {
+	if (process.platform === "win32") {
+		process.stderr.write(
+			`${c("31", "✗ Native Windows is not supported.")}\n` +
+			`  Develop inside WSL 2 — see README.md for setup instructions.\n`,
+		);
+		process.exit(1);
+	}
 }
 
 export interface CollectResult {
@@ -31,10 +53,10 @@ export interface CollectResult {
  * Spawn a command synchronously with inherited stdio.
  * Exits the parent process if the command fails.
  */
-export function run(cmd: string[], options?: { cwd?: string; env?: Record<string, string> }): void {
+export function run(cmd: string[], options?: { cwd?: string; env?: Record<string, string>; ci?: boolean }): void {
 	const proc = Bun.spawnSync(cmd, {
 		stdio: ["ignore", "inherit", "inherit"],
-		env: options?.env ? { ...baseEnv, ...options.env } : baseEnv,
+		env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), ...options?.env },
 		cwd: options?.cwd,
 	});
 	if (proc.exitCode !== 0) process.exit(proc.exitCode);
@@ -43,7 +65,7 @@ export function run(cmd: string[], options?: { cwd?: string; env?: Record<string
 /**
  * Spawn a command synchronously with captured output.
  */
-export function runPiped(cmd: string[], options?: { cwd?: string; env?: Record<string, string> }): {
+export function runPiped(cmd: string[], options?: { cwd?: string; env?: Record<string, string>; ci?: boolean }): {
 	exitCode: number;
 	stdout: string;
 	stderr: string;
@@ -51,7 +73,7 @@ export function runPiped(cmd: string[], options?: { cwd?: string; env?: Record<s
 	const proc = Bun.spawnSync(cmd, {
 		stdout: "pipe",
 		stderr: "pipe",
-		env: options?.env ? { ...baseEnv, ...options.env } : baseEnv,
+		env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), ...options?.env },
 		cwd: options?.cwd,
 	});
 	return {
@@ -67,11 +89,11 @@ export function runPiped(cmd: string[], options?: { cwd?: string; env?: Record<s
 export async function spawnCollect(
 	cmd: string[],
 	startTime: number,
-	options?: { cwd?: string },
+	options?: { cwd?: string; ci?: boolean },
 ): Promise<CollectResult> {
 	try {
 		const proc = Bun.spawn(cmd, {
-			env: { ...baseEnv, FORCE_COLOR: "1" },
+			env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), FORCE_COLOR: "1" },
 			stdout: "pipe",
 			stderr: "pipe",
 			cwd: options?.cwd,
@@ -137,19 +159,10 @@ export class ProcessGroup {
 
 	constructor() {
 		const cleanup = () => {
-			for (const p of this.procs) {
-				try {
-					p.kill("SIGTERM");
-				} catch {}
-			}
-			for (const fn of this.cleanupFns) {
-				try {
-					fn();
-				} catch {}
-			}
-			this.removeSignalHandlers();
-			ProcessGroup.resetTerminal();
-			process.exit(130);
+			// Use killAll() so we wait for child processes to fully exit before
+			// resetting the terminal — prevents their cleanup escape sequences
+			// from appearing as corruption on the main screen.
+			this.killAll().then(() => process.exit(130));
 		};
 		for (const sig of ["SIGINT", "SIGTERM"] as const) {
 			process.on(sig, cleanup);
@@ -179,11 +192,11 @@ export class ProcessGroup {
 
 	spawn(
 		cmd: string[],
-		options?: { env?: Record<string, string>; cwd?: string; inheritStdin?: boolean },
+		options?: { env?: Record<string, string>; cwd?: string; inheritStdin?: boolean; ci?: boolean },
 	): ReturnType<typeof Bun.spawn> {
 		const proc = Bun.spawn(cmd, {
 			stdio: [options?.inheritStdin ? "inherit" : "ignore", "inherit", "inherit"],
-			env: { ...baseEnv, ...options?.env },
+			env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), ...options?.env },
 			cwd: options?.cwd,
 		});
 		this.procs.push(proc);

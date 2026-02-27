@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import { jsonLogger } from './vite-plugin-json-logger';
 
 export default defineConfig({
+	clearScreen: false,
 	plugins: [jsonLogger(), tailwindcss(), sveltekit()],
 	server: {
 		proxy: {

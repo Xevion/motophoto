@@ -4,8 +4,11 @@
  * Usage: bun scripts/check.ts [--fix|-f] [--help|-h]
  */
 
+import { existsSync } from "node:fs";
 import { c, elapsed, isStderrTTY, parseFlags } from './lib/fmt';
-import { type CollectResult, hasTool, raceInOrder, runPiped, spawnCollect, warnMissingTool } from './lib/proc';
+import { type CollectResult, assertNotWindowsNative, hasTool, raceInOrder, runPiped, spawnCollect, warnMissingTool } from './lib/proc';
+
+assertNotWindowsNative();
 
 const { flags } = parseFlags(
 	process.argv.slice(2),
@@ -25,9 +28,17 @@ Flags:
 	process.exit(0);
 }
 
+// Require web/node_modules before attempting any frontend checks
+if (!existsSync("web/node_modules")) {
+	process.stderr.write(
+		`${c("31", "✗ web/node_modules not found")} — run \`bun install\` inside web/ first\n`,
+	);
+	process.exit(1);
+}
+
 function runStep(name: string, subsystem: 'frontend' | 'backend', cmd: string[], opts?: { cwd?: string }) {
 	const t0 = Date.now();
-	const result = runPiped(cmd, { cwd: opts?.cwd });
+	const result = runPiped(cmd, { cwd: opts?.cwd, ci: true });
 	const dt = ((Date.now() - t0) / 1000).toFixed(1);
 	const subsystemLabel = c('2', `[${subsystem}]`);
 	if (result.exitCode !== 0) {
@@ -125,7 +136,7 @@ const remaining = new Set(checks.map((ch) => ch.name));
 
 const promises = checks.map(async (check) => ({
 	...check,
-	...(await spawnCollect(check.cmd, start, { cwd: check.cwd }))
+	...(await spawnCollect(check.cmd, start, { cwd: check.cwd, ci: true }))
 }));
 
 const interval = isStderrTTY
@@ -146,11 +157,10 @@ await raceInOrder(promises, checks, (r) => {
 	const subsystemLabel = c('2', `[${r.subsystem}]`);
 	if (r.exitCode !== 0) {
 		process.stdout.write(c('31', `✗ ${r.name}`) + ` ${subsystemLabel} (${r.elapsed}s)\n`);
+		if (r.stdout) process.stdout.write(r.stdout);
+		if (r.stderr) process.stderr.write(r.stderr);
 		if (r.hint) {
-			process.stdout.write(c('2', `  ${r.hint}`) + '\n');
-		} else {
-			if (r.stdout) process.stdout.write(r.stdout);
-			if (r.stderr) process.stderr.write(r.stderr);
+			process.stdout.write(c('2', `  hint: ${r.hint}`) + '\n');
 		}
 	} else {
 		process.stdout.write(c('32', `✓ ${r.name}`) + ` ${subsystemLabel} (${r.elapsed}s)\n`);

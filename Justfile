@@ -15,7 +15,7 @@ check *flags:
 
 # Dev server - frontend + backend. Flags: -f(rontend) -b(ackend)
 dev *flags:
-    bun scripts/dev.ts {{flags}}
+    -bun scripts/dev.ts {{flags}}
 
 # Run all tests
 test:
@@ -57,14 +57,23 @@ docker-run *flags:
 db cmd="start":
     #!/usr/bin/env bash
     set -euo pipefail
+    if ! command -v docker &>/dev/null; then
+        echo "✗ docker not found — install Docker first (see README.md)" >&2
+        exit 1
+    fi
+    if ! docker info &>/dev/null; then
+        echo "✗ Docker daemon is not running — start Docker first" >&2
+        exit 1
+    fi
     case "{{cmd}}" in
         start)
-            docker compose up -d db
+            docker compose up -d --wait db
             ;;
         reset)
-            docker compose up -d db
+            docker compose up -d --wait db
             docker compose exec db psql -U motophoto -d postgres -c "DROP DATABASE IF EXISTS motophoto"
             docker compose exec db psql -U motophoto -d postgres -c "CREATE DATABASE motophoto"
+            echo "Database reset. Restart the dev server to re-run migrations."
             ;;
         rm)
             docker compose down
