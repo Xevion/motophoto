@@ -12,9 +12,9 @@ RUN CGO_ENABLED=0 go build -a -ldflags="-w -s" -o motophoto . \
 FROM oven/bun:1 AS frontend-builder
 WORKDIR /build
 COPY web/package.json web/bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 COPY web/ ./
-RUN bun --smol run build
+RUN bun --smol run prepare && bun --smol run build
 
 # Stage 3: Runtime
 FROM oven/bun:1-slim
