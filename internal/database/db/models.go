@@ -5,11 +5,160 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type EventStatus string
+
+const (
+	EventStatusDraft     EventStatus = "draft"
+	EventStatusPublished EventStatus = "published"
+	EventStatusArchived  EventStatus = "archived"
+)
+
+func (e *EventStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EventStatus(s)
+	case string:
+		*e = EventStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EventStatus: %T", src)
+	}
+	return nil
+}
+
+type NullEventStatus struct {
+	EventStatus EventStatus `json:"event_status"`
+	Valid       bool        `json:"valid"` // Valid is true if EventStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEventStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.EventStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EventStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEventStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EventStatus), nil
+}
+
+type UserRole string
+
+const (
+	UserRolePhotographer UserRole = "photographer"
+	UserRoleCustomer     UserRole = "customer"
+)
+
+func (e *UserRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserRole(s)
+	case string:
+		*e = UserRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserRole: %T", src)
+	}
+	return nil
+}
+
+type NullUserRole struct {
+	UserRole UserRole `json:"user_role"`
+	Valid    bool     `json:"valid"` // Valid is true if UserRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserRole), nil
+}
+
+type Event struct {
+	ID             string             `json:"id"`
+	PhotographerID string             `json:"photographer_id"`
+	Slug           string             `json:"slug"`
+	Name           string             `json:"name"`
+	Sport          string             `json:"sport"`
+	Location       pgtype.Text        `json:"location"`
+	Description    pgtype.Text        `json:"description"`
+	Tags           []string           `json:"tags"`
+	Status         EventStatus        `json:"status"`
+	Date           pgtype.Date        `json:"date"`
+	CoverPhotoID   pgtype.Text        `json:"cover_photo_id"`
+	SortOrder      int32              `json:"sort_order"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Gallery struct {
+	ID           string             `json:"id"`
+	EventID      string             `json:"event_id"`
+	Slug         string             `json:"slug"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	SortOrder    int32              `json:"sort_order"`
+	CoverPhotoID pgtype.Text        `json:"cover_photo_id"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Photo struct {
+	ID          string             `json:"id"`
+	GalleryID   string             `json:"gallery_id"`
+	StorageKey  string             `json:"storage_key"`
+	PreviewKey  string             `json:"preview_key"`
+	Filename    string             `json:"filename"`
+	ContentType string             `json:"content_type"`
+	SizeBytes   int64              `json:"size_bytes"`
+	Width       pgtype.Int4        `json:"width"`
+	Height      pgtype.Int4        `json:"height"`
+	SortOrder   int32              `json:"sort_order"`
+	ExifData    []byte             `json:"exif_data"`
+	TakenAt     pgtype.Timestamptz `json:"taken_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
 
 type Session struct {
 	Token  string             `json:"token"`
 	Data   []byte             `json:"data"`
 	Expiry pgtype.Timestamptz `json:"expiry"`
+}
+
+type User struct {
+	ID                     string             `json:"id"`
+	Email                  string             `json:"email"`
+	PasswordHash           string             `json:"password_hash"`
+	DisplayName            string             `json:"display_name"`
+	Role                   UserRole           `json:"role"`
+	BannedAt               pgtype.Timestamptz `json:"banned_at"`
+	EmailVerifiedAt        pgtype.Timestamptz `json:"email_verified_at"`
+	PasswordResetToken     pgtype.Text        `json:"password_reset_token"`
+	PasswordResetExpiresAt pgtype.Timestamptz `json:"password_reset_expires_at"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
 }
