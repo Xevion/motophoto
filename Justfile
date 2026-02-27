@@ -17,9 +17,15 @@ check *flags:
 dev *flags:
     -bun scripts/dev.ts {{flags}}
 
-# Run all tests
-test:
-    go test ./...
+# Run all tests (use -v for verbose, -run=<pattern> to filter)
+test *flags:
+    go test -race -count=1 {{flags}} ./...
+
+# Run tests with coverage report
+test-cover:
+    go test -race -count=1 -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out -o coverage.html
+    @echo "Coverage report: coverage.html"
 
 # Run linters
 lint:

@@ -84,8 +84,12 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: replace with authenticated user ID once auth middleware is wired up
+	photographerID := "stub-user"
+
 	event, err := s.events.Create(r.Context(), service.CreateEventParams{
-		Name: req.Name, Slug: req.Slug, Sport: req.Sport,
+		PhotographerID: photographerID,
+		Name:           req.Name, Slug: req.Slug, Sport: req.Sport,
 		Location: req.Location, Description: req.Description,
 		Date: req.Date, Status: req.Status, Tags: req.Tags,
 	})

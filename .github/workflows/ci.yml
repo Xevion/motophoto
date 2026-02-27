@@ -54,7 +54,7 @@ jobs:
 
       - name: Test
         env:
-          DATABASE_URL: postgres://motophoto:motophoto@localhost:5432/motophoto_test?sslmode=disable
+          CI: "true"
         run: go test -race -count=1 -coverprofile=coverage.out ./...
 
       - name: Upload coverage
@@ -64,6 +64,11 @@ jobs:
           name: go-coverage
           path: coverage.out
           retention-days: 14
+
+      - name: Check test coverage
+        uses: vladopajic/go-test-coverage@v2
+        with:
+          config: ./.testcoverage.yml
 
       - name: Check sqlc generated code
         run: |

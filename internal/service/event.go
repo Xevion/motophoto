@@ -36,14 +36,15 @@ type EventWithGalleries struct {
 
 // CreateEventParams holds inputs for creating an event.
 type CreateEventParams struct {
-	Name        string
-	Slug        string
-	Sport       string
-	Location    *string
-	Description *string
-	Date        *string
-	Status      *string
-	Tags        []string
+	PhotographerID string
+	Name           string
+	Slug           string
+	Sport          string
+	Location       *string
+	Description    *string
+	Date           *string
+	Status         *string
+	Tags           []string
 }
 
 // UpdateEventParams holds optional fields for patching an event.
@@ -121,7 +122,7 @@ func (s *EventService) Get(ctx context.Context, idOrSlug string) (*EventWithGall
 		galleries = append(galleries, galleryFromListRow(g))
 	}
 
-	e := eventFromGetRow(row)
+	e := EventFromGetRow(row)
 	return &EventWithGalleries{Event: e, Galleries: galleries}, nil
 }
 
@@ -151,7 +152,7 @@ func (s *EventService) Create(ctx context.Context, params CreateEventParams) (*E
 
 	row, err := s.queries.CreateEvent(ctx, db.CreateEventParams{
 		ID:             id,
-		PhotographerID: "stub-user",
+		PhotographerID: params.PhotographerID,
 		Slug:           params.Slug,
 		Name:           params.Name,
 		Sport:          params.Sport,
@@ -221,7 +222,7 @@ func (s *EventService) Update(ctx context.Context, id string, params UpdateEvent
 		return nil, fmt.Errorf("fetch updated event %q: %w", id, err)
 	}
 
-	e := eventFromGetRow(updated)
+	e := EventFromGetRow(updated)
 	return &e, nil
 }
 
@@ -232,14 +233,16 @@ func (s *EventService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func textPtr(t pgtype.Text) *string {
+// TextPtr converts a pgtype.Text to a *string, returning nil if not valid.
+func TextPtr(t pgtype.Text) *string {
 	if !t.Valid {
 		return nil
 	}
 	return &t.String
 }
 
-func datePtr(d pgtype.Date) *string {
+// DatePtr converts a pgtype.Date to a *string in "2006-01-02" format, returning nil if not valid.
+func DatePtr(d pgtype.Date) *string {
 	if !d.Valid {
 		return nil
 	}
@@ -285,21 +288,22 @@ func eventFromListRow(r db.ListEventsRow) Event {
 	}
 	return Event{
 		ID: r.ID, Slug: r.Slug, Name: r.Name, Sport: r.Sport,
-		Status: string(r.Status), Location: textPtr(r.Location),
-		Description: textPtr(r.Description), Date: datePtr(r.Date),
+		Status: string(r.Status), Location: TextPtr(r.Location),
+		Description: TextPtr(r.Description), Date: DatePtr(r.Date),
 		Tags: tags, PhotoCount: r.PhotoCount,
 	}
 }
 
-func eventFromGetRow(r db.GetEventRow) Event {
+// EventFromGetRow converts a database GetEventRow into the service-layer Event type.
+func EventFromGetRow(r db.GetEventRow) Event {
 	tags := r.Tags
 	if tags == nil {
 		tags = []string{}
 	}
 	return Event{
 		ID: r.ID, Slug: r.Slug, Name: r.Name, Sport: r.Sport,
-		Status: string(r.Status), Location: textPtr(r.Location),
-		Description: textPtr(r.Description), Date: datePtr(r.Date),
+		Status: string(r.Status), Location: TextPtr(r.Location),
+		Description: TextPtr(r.Description), Date: DatePtr(r.Date),
 		Tags: tags, PhotoCount: r.PhotoCount,
 	}
 }
@@ -311,8 +315,8 @@ func eventFromModel(r db.Event) Event {
 	}
 	return Event{
 		ID: r.ID, Slug: r.Slug, Name: r.Name, Sport: r.Sport,
-		Status: string(r.Status), Location: textPtr(r.Location),
-		Description: textPtr(r.Description), Date: datePtr(r.Date),
+		Status: string(r.Status), Location: TextPtr(r.Location),
+		Description: TextPtr(r.Description), Date: DatePtr(r.Date),
 		Tags: tags, PhotoCount: 0,
 	}
 }

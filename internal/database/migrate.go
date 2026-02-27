@@ -15,6 +15,9 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+// MigrationsFS returns the embedded migrations for use in test utilities.
+func MigrationsFS() embed.FS { return migrations }
+
 // Migrate runs all pending database migrations against the given pool.
 // Migrations are embedded at build time from internal/database/migrations/*.sql.
 func Migrate(ctx context.Context, pool *pgxpool.Pool) error {

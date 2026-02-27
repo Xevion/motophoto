@@ -152,7 +152,7 @@ func (s *GalleryService) verifyEventExists(ctx context.Context, eventID string) 
 func galleryFromListRow(r db.ListGalleriesByEventRow) Gallery {
 	return Gallery{
 		ID: r.ID, Slug: r.Slug, Name: r.Name,
-		Description: textPtr(r.Description),
+		Description: TextPtr(r.Description),
 		SortOrder:   r.SortOrder, PhotoCount: r.PhotoCount,
 	}
 }
@@ -160,7 +160,7 @@ func galleryFromListRow(r db.ListGalleriesByEventRow) Gallery {
 func galleryFromGetRow(r db.GetGalleryRow) Gallery {
 	return Gallery{
 		ID: r.ID, Slug: r.Slug, Name: r.Name,
-		Description: textPtr(r.Description),
+		Description: TextPtr(r.Description),
 		SortOrder:   r.SortOrder, PhotoCount: r.PhotoCount,
 	}
 }
@@ -168,7 +168,7 @@ func galleryFromGetRow(r db.GetGalleryRow) Gallery {
 func galleryFromModel(r db.Gallery) Gallery {
 	return Gallery{
 		ID: r.ID, Slug: r.Slug, Name: r.Name,
-		Description: textPtr(r.Description),
+		Description: TextPtr(r.Description),
 		SortOrder:   r.SortOrder, PhotoCount: 0,
 	}
 }
