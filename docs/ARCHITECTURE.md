@@ -41,11 +41,14 @@ SvelteKit's `hooks.server.ts` forwards `/api/*` requests to the Go backend. The 
 
 ```mermaid
 flowchart LR
-    Browser -->|request| SSR["SvelteKit SSR :$PORT"]
-    SSR -->|SSR page rendering| Browser
-    SSR -->|/api/* proxy\nhooks.server.ts| Go["Go :3001"]
+    Browser -->|request| CF["Cloudflare"]
+    CF -->|"True-Client-IP\nCF-Connecting-IP"| Fastly["Fastly (Railway edge)"]
+    Fastly -->|"X-Real-IP = Cloudflare IP ⚠️"| SSR["SvelteKit SSR :$PORT"]
+    SSR -->|"forwards True-Client-IP\n/api/* proxy"| Go["Go :3001"]
     Go --> Postgres["PostgreSQL"]
 ```
+
+> **IP resolution**: The Go backend's network peer is SvelteKit, not the end user. Cloudflare sets `True-Client-IP` to the real client IP; Railway's `X-Real-IP` contains Cloudflare's edge IP (not the client). `hooks.server.ts` forwards `True-Client-IP` so chi's `RealIP` middleware resolves the correct address.
 
 ## Project Structure
 
@@ -55,7 +58,14 @@ motophoto/
 +-- internal/
 |   +-- server/
 |   |   +-- server.go                # Chi router setup, middleware, route definitions
-|   |   +-- types.go                 # API response types (tygo generates TS bindings)
+|   |   +-- events.go                # Event handler methods (list, get, create, update, delete)
+|   |   +-- galleries.go             # Gallery handler methods
+|   |   +-- pagination.go            # Cursor pagination helpers (encode/decode cursor)
+|   |   +-- types.go                 # API request/response types (tygo generates TS bindings)
+|   +-- service/
+|   |   +-- event.go                 # EventService -- business logic for events
+|   |   +-- gallery.go               # GalleryService -- business logic for galleries
+|   |   +-- errors.go                # Sentinel errors (ErrNotFound, ErrConflict)
 |   +-- database/
 |   |   +-- database.go              # pgx connection pool creation
 |   |   +-- migrate.go               # goose migration runner (runs at startup)
@@ -65,7 +75,7 @@ motophoto/
 |   +-- session/
 |   |   +-- session.go               # scs session manager backed by PostgreSQL
 |   +-- middleware/
-|       +-- middleware.go            # Custom middleware (placeholder)
+|       +-- middleware.go            # RequestID (Railway-aware), RequestLogger, LoggerFromContext
 +-- web/                             # SvelteKit frontend (see SVELTE.md)
 |   +-- src/
 |   |   +-- routes/                  # File-based routing

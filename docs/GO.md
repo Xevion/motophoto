@@ -16,9 +16,9 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 
 The server uses Chi (`go-chi/chi/v5`) with this middleware stack (order matters):
 
-1. **RequestID** -- unique ID per request
-2. **RealIP** -- trust `X-Forwarded-For` headers
-3. **Logger** -- request/response logging
+1. **RequestID** -- reads `X-Railway-Request-Id` first (Railway's edge proxy header), falls back to `X-Request-Id`, then generates a UUID; stored in context via chi's `RequestIDKey`
+2. **RealIP** -- chi's `chimw.RealIP`; checks `True-Client-IP`, then `X-Real-IP`, then `X-Forwarded-For` (in that order). In production the proxy chain is Client → Cloudflare → Fastly (Railway) → SvelteKit → Go, so the backend's network peer is SvelteKit. `hooks.server.ts` forwards `True-Client-IP` (set by Cloudflare to the real client) so chi resolves the correct address
+3. **RequestLogger** -- logs each response with method, path, status, and duration; routes to Debug/Warn/Error by status code; stores a `request_id`-tagged logger in context for use by handlers
 4. **Recoverer** -- panic recovery -> 500 instead of crash
 5. **RateLimiter** -- 100 requests/minute per real IP (`httprate`)
 6. **CORS** -- allows `localhost:5173` and `localhost:3000` origins; credentials enabled
@@ -44,40 +44,43 @@ All data endpoints use real database queries via sqlc. List endpoints return a `
 
 ## Adding a New Endpoint
 
-1. Define the handler function in `internal/server/server.go`:
+Handlers live in resource-specific files under `internal/server/` (e.g., `events.go`, `galleries.go`). They are methods on `*Server` so they can access the service layer and session manager.
+
+1. Add the handler method to the appropriate file:
 
 ```go
-func handleCreateEvent(w http.ResponseWriter, r *http.Request) {
-    // Decode request body
-    var req CreateEventRequest
+func (s *Server) handleCreatePhoto(w http.ResponseWriter, r *http.Request) {
+    // Decode and size-limit the request body
+    r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+    var req CreatePhotoRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        http.Error(w, `{"error": "invalid request body"}`, http.StatusBadRequest)
+        writeError(w, http.StatusBadRequest, "invalid request body")
         return
     }
 
-    // Validate
-    if req.Name == "" {
-        http.Error(w, `{"error": "name is required"}`, http.StatusBadRequest)
+    // Validate struct tags
+    if err := validate.Struct(req); err != nil {
+        writeError(w, http.StatusBadRequest, err.Error())
         return
     }
 
-    // Call database (once wired up)
-    // event, err := queries.CreateEvent(r.Context(), db.CreateEventParams{...})
+    // Call the service layer
+    photo, err := s.photos.Create(r.Context(), req.GalleryID, req.PriceCents)
+    if err != nil {
+        writeServiceError(w, r, err, "create photo")
+        return
+    }
 
-    // Return JSON
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(event)
+    writeJSON(w, http.StatusCreated, ItemResponse[PhotoResponse]{Data: photoResponseFromService(photo)})
 }
 ```
 
-2. Register it in `setupRoutes()`:
+2. Register it in `setupRoutes()` in `server.go`:
 
 ```go
 r.Route("/api/v1", func(r chi.Router) {
-    r.Get("/events", handleListEvents)
-    r.Post("/events", handleCreateEvent)  // new
-    r.Get("/events/{id}", handleGetEvent)
+    r.Get("/events", s.handleListEvents)
+    r.Post("/events/{eventId}/galleries/{id}/photos", s.handleCreatePhoto)  // new
 })
 ```
 
@@ -87,7 +90,7 @@ Every handler follows the same structure:
 
 1. Extract parameters (URL params, query string, request body)
 2. Validate inputs
-3. Call business logic / database
+3. Call the service layer
 4. Return JSON response with appropriate status code
 
 ### URL Parameters
@@ -99,10 +102,61 @@ sport := r.URL.Query().Get("sport")  // from query string ?sport=motocross
 
 ### JSON Responses
 
+Use the `writeJSON`, `writeError`, and `writeServiceError` helpers -- never write to `w` directly:
+
 ```go
-w.Header().Set("Content-Type", "application/json")
-json.NewEncoder(w).Encode(data)
+writeJSON(w, http.StatusOK, ItemResponse[EventResponse]{Data: eventResponseFromService(e)})
+writeError(w, http.StatusBadRequest, "name is required")
+writeServiceError(w, r, err, "create event")  // translates service errors to HTTP codes
 ```
+
+`writeServiceError` maps `service.ErrNotFound` -> 404, `service.ErrConflict` -> 409, and logs + returns 500 for anything else.
+
+## Service Layer
+
+Business logic lives in `internal/service/`, sitting between the HTTP handlers and the database. Handlers call services; services call sqlc-generated queries.
+
+```
+Handler -> Service -> sqlc queries -> Postgres
+```
+
+Each service is instantiated once in `server.New()` and stored on the `Server` struct:
+
+```go
+s.events    *service.EventService
+s.galleries *service.GalleryService
+```
+
+### Service Types
+
+Services define their own plain-Go types (no pgx/pgtype leaking into handlers):
+
+```go
+type Event struct {
+    ID          string
+    Slug        string
+    Name        string
+    Sport       string
+    Status      string
+    Location    *string
+    Description *string
+    Date        *string
+    Tags        []string
+    PhotoCount  int64
+}
+```
+
+Conversion from sqlc-generated types to service types happens inside the service. Conversion from service types to HTTP response types happens in the handler (via `eventResponseFromService`, etc.).
+
+### Service Errors
+
+`internal/service/errors.go` defines sentinel errors that handlers translate to HTTP status codes via `writeServiceError`:
+
+| Error              | HTTP status |
+| ------------------ | ----------- |
+| `service.ErrNotFound` | 404 Not Found |
+| `service.ErrConflict` | 409 Conflict |
+| anything else      | 500 Internal Server Error |
 
 ## Sessions
 
@@ -230,7 +284,30 @@ go test ./...         # Equivalent
 go test ./internal/server/...  # Test specific package
 ```
 
-Test files live next to the code they test: `server_test.go` alongside `server.go`.
+### Integration Tests with pgtestdb
+
+Handler and service tests are integration tests that run against a real Postgres instance. [pgtestdb](https://github.com/peterldowns/pgtestdb) creates an isolated, migrated database per test using template-database cloning -- migrations run once and are cached across the test suite.
+
+Tests use `testutil.NewEnv(t)`, which wires up a pool, queries, services, and an HTTP handler against the isolated database:
+
+```go
+func TestHandleListEvents(t *testing.T) {
+    t.Parallel()
+    env := testutil.NewEnv(t)
+
+    // Create fixtures via the dbfactory helpers
+    event := dbfactory.Event(ctx, t, env.Pool, env.Events, &dbfactory.EventOpts{
+        Status: new("published"),
+    })
+
+    rr := doRequest(t, env.Handler, http.MethodGet, "/api/v1/events", "")
+    assert.Equal(t, http.StatusOK, rr.Code)
+}
+```
+
+`testutil.NewEnv` uses the local docker-compose Postgres on port 57512. In CI, `CI=true` switches it to the standard port 5432.
+
+Test files use the `_test` package suffix (`server_test`, `service_test`) and live alongside the code they test.
 
 ## Field Alignment
 

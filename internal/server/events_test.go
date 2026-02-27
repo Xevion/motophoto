@@ -163,8 +163,6 @@ func TestHandleDeleteEvent(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
-// Gallery handler tests
-
 func TestHandleListGalleries(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnv(t)

@@ -145,18 +145,20 @@ slog.Error("database query failed", "error", err, "query", "ListEvents")
 
 ### Response Format
 
-All API responses return JSON. Collections return arrays, individual items return objects.
+All API responses return JSON. Collections and individual items use an envelope type. Errors are a flat object.
 
 ```json
 // Collection
-[{"id": "...", "name": "..."}]
+{"data": [{"id": "...", "name": "..."}], "next_cursor": "..."}
 
 // Individual
-{"id": "...", "name": "..."}
+{"data": {"id": "...", "name": "..."}}
 
 // Error
 {"error": "description of what went wrong"}
 ```
+
+The `next_cursor` field is omitted when there are no more pages.
 
 ### HTTP Status Codes
 

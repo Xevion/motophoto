@@ -129,9 +129,10 @@ const checks: Check[] = [
 			cmd: ['go', 'build', '-o', '/dev/null', '.']
 		},
 		{
+			// Integration tests require Postgres at :57512 (docker-compose). Run `just db start` first.
 			name: 'backend-test',
 			subsystem: 'backend' as const,
-			cmd: ['go', 'test', './...']
+			cmd: ['go', 'test', '-race', '-count=1', './...']
 		},
 	] : []),
 	...(hasSqlc ? [{

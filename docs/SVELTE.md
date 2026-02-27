@@ -17,7 +17,6 @@ web/
 |   |           +-- +page.server.ts  # Event detail data loader
 |   +-- lib/
 |   |   +-- api.ts                   # API client (apiFetch helper)
-|   |   +-- utils.ts                 # Shared utility functions
 |   |   +-- index.ts                 # Barrel export
 |   |   +-- types.gen.ts             # Auto-generated Go -> TypeScript bindings (tygo)
 |   |   +-- logger.client.ts         # Client-side logger (logtape)

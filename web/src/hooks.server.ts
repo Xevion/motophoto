@@ -10,13 +10,17 @@ const BACKEND_URL = env.BACKEND_URL ?? 'http://localhost:3001';
 const proxyLogger = getLogger(['ssr', 'proxy']);
 
 // Headers from the incoming request that are safe to forward to the Go backend.
-// Railway's edge proxy controls X-Real-Ip (strips any client-provided value and
-// sets it to the actual client IP) and appends to X-Forwarded-For, so both can
-// be trusted when present. Forwarding only an explicit list prevents arbitrary
-// client headers from reaching the backend if Railway's edge is bypassed.
+// The proxy chain is: Client -> Cloudflare -> Fastly (Railway edge) -> SvelteKit -> Go.
+// Cloudflare sets True-Client-IP and CF-Connecting-IP to the real client IP.
+// Railway's X-Real-IP contains its immediate upstream (Cloudflare), not the client.
+// Chi's RealIP middleware checks True-Client-IP first, so forwarding it gives
+// the backend the actual client IP. Forwarding only an explicit list prevents
+// arbitrary client headers from reaching the backend.
 const FORWARDED_REQUEST_HEADERS = [
 	'x-railway-request-id',
 	'x-request-id',
+	'true-client-ip',
+	'cf-connecting-ip',
 	'x-real-ip',
 	'x-forwarded-for',
 	'x-forwarded-proto',
@@ -91,7 +95,7 @@ export const handleFetch: HandleFetch = async ({ request, fetch, event }) => {
 		headers.set('x-request-id', requestId);
 	}
 
-	for (const name of ['x-real-ip', 'x-forwarded-for'] as const) {
+	for (const name of ['true-client-ip', 'cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'] as const) {
 		const value = event.request.headers.get(name);
 		if (value !== null && !headers.has(name)) {
 			headers.set(name, value);
