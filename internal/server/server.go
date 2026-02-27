@@ -5,26 +5,34 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
-	router *chi.Mux
-	port   string
+	router   *chi.Mux
+	db       *pgxpool.Pool
+	sessions *scs.SessionManager
+	port     string
 }
 
-func New() (*Server, error) {
+func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
 	}
 
 	s := &Server{
-		router: chi.NewRouter(),
-		port:   port,
+		router:   chi.NewRouter(),
+		port:     port,
+		db:       pool,
+		sessions: sessions,
 	}
 
 	s.setupMiddleware()
@@ -38,7 +46,7 @@ func (s *Server) setupMiddleware() {
 	s.router.Use(middleware.RealIP)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
-	s.router.Use(middleware.Compress(5))
+	s.router.Use(httprate.LimitByRealIP(100, time.Minute))
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -47,6 +55,8 @@ func (s *Server) setupMiddleware() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	s.router.Use(middleware.Compress(5))
+	s.router.Use(s.sessions.LoadAndSave)
 }
 
 func (s *Server) setupRoutes() {

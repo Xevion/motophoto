@@ -13,7 +13,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
 
+	"github.com/Xevion/motophoto/internal/database"
 	"github.com/Xevion/motophoto/internal/server"
+	"github.com/Xevion/motophoto/internal/session"
 )
 
 // shouldUseJSON returns true when structured JSON logging should be used.
@@ -66,7 +68,23 @@ func main() {
 
 	initLogging()
 
-	srv, err := server.New()
+	ctx := context.Background()
+
+	pool, err := database.New(ctx)
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	if err = database.Migrate(ctx, pool); err != nil {
+		slog.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+
+	sessions := session.New(pool)
+
+	srv, err := server.New(pool, sessions)
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)
