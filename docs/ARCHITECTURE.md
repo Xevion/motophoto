@@ -1,6 +1,6 @@
 # Architecture
 
-MotoPhoto is an event photography marketplace — photographers upload action sports photos, customers browse and purchase them. The system is a monorepo with a Go backend serving a SvelteKit frontend.
+MotoPhoto is an event photography marketplace -- photographers upload action sports photos, customers browse and purchase them. The system is a monorepo with a Go backend serving a SvelteKit frontend.
 
 ## System Overview
 
@@ -9,7 +9,7 @@ MotoPhoto is an event photography marketplace — photographers upload action sp
 | Frontend | SvelteKit 2 + Svelte 5 + PandaCSS | 5173 (dev) | `web/` |
 | Backend | Go + Chi router | 3001 | `main.go`, `internal/` |
 | Database | PostgreSQL 17 | 57512 (local) | `docker-compose.yml` |
-| Sessions | scs + pgxstore | — | `internal/session/` |
+| Sessions | scs + pgxstore | -- | `internal/session/` |
 
 ## Request Flow
 
@@ -17,8 +17,8 @@ MotoPhoto is an event photography marketplace — photographers upload action sp
 
 Two servers run simultaneously via `just dev`:
 
-1. **SvelteKit dev server** (Vite, port 5173) — serves the frontend with HMR
-2. **Go backend** (Air hot-reload, port 3001) — serves the API
+1. **SvelteKit dev server** (Vite, port 5173) -- serves the frontend with HMR
+2. **Go backend** (Air hot-reload, port 3001) -- serves the API
 
 Vite proxies `/api` requests to the Go backend (`web/vite.config.ts`). The browser only talks to `:5173`.
 
@@ -34,8 +34,8 @@ flowchart LR
 
 The container runs two processes orchestrated by `web/entrypoint.ts`:
 
-1. **Go backend** (port 3001, internal only) — serves the API
-2. **SvelteKit SSR** (port $PORT, public) — server-side renders pages
+1. **Go backend** (port 3001, internal only) -- serves the API
+2. **SvelteKit SSR** (port $PORT, public) -- server-side renders pages
 
 SvelteKit's `hooks.server.ts` forwards `/api/*` requests to the Go backend. The entrypoint starts Go first, waits for a health check (`/api/health`), then starts SvelteKit.
 
@@ -51,39 +51,39 @@ flowchart LR
 
 ```
 motophoto/
-├── main.go                          # Entry point — loads env, creates logger, starts server
-├── internal/
-│   ├── server/
-│   │   ├── server.go                # Chi router setup, middleware, route definitions
-│   │   └── types.go                 # API response types (tygo generates TS bindings)
-│   ├── database/
-│   │   ├── database.go              # pgx connection pool creation
-│   │   ├── migrate.go               # goose migration runner (runs at startup)
-│   │   ├── migrations/              # SQL migration files (goose format)
-│   │   ├── queries/                 # sqlc query definitions (.sql)
-│   │   └── db/                      # sqlc generated Go code (DO NOT EDIT)
-│   ├── session/
-│   │   └── session.go               # scs session manager backed by PostgreSQL
-│   └── middleware/
-│       └── middleware.go            # Custom middleware (placeholder)
-├── web/                             # SvelteKit frontend (see SVELTE.md)
-│   ├── src/
-│   │   ├── routes/                  # File-based routing
-│   │   └── lib/                     # Shared code (api.ts, components, recipes)
-│   ├── styled-system/               # PandaCSS generated output (DO NOT EDIT)
-│   ├── panda.config.ts              # PandaCSS design system config
-│   ├── svelte.config.js
-│   └── vite.config.ts               # API proxy config
-├── Justfile                         # Task runner — all dev commands
-├── scripts/                         # Bun-based dev scripts (check, dev)
-│   ├── check.ts                     # Parallel check runner
-│   ├── dev.ts                       # Dev server orchestrator
-│   └── lib/                         # Shared utilities (fmt, proc)
-├── docker-compose.yml               # Local Postgres
-├── Dockerfile                       # Multi-stage production build
-├── sqlc.yml                         # SQL code generation config
-├── .air.toml                        # Go hot-reload config
-└── .github/workflows/ci.yml        # Lint, test, Docker build
++-- main.go                          # Entry point -- loads env, creates logger, starts server
++-- internal/
+|   +-- server/
+|   |   +-- server.go                # Chi router setup, middleware, route definitions
+|   |   +-- types.go                 # API response types (tygo generates TS bindings)
+|   +-- database/
+|   |   +-- database.go              # pgx connection pool creation
+|   |   +-- migrate.go               # goose migration runner (runs at startup)
+|   |   +-- migrations/              # SQL migration files (goose format)
+|   |   +-- queries/                 # sqlc query definitions (.sql)
+|   |   +-- db/                      # sqlc generated Go code (DO NOT EDIT)
+|   +-- session/
+|   |   +-- session.go               # scs session manager backed by PostgreSQL
+|   +-- middleware/
+|       +-- middleware.go            # Custom middleware (placeholder)
++-- web/                             # SvelteKit frontend (see SVELTE.md)
+|   +-- src/
+|   |   +-- routes/                  # File-based routing
+|   |   +-- lib/                     # Shared code (api.ts, components, recipes)
+|   +-- styled-system/               # PandaCSS generated output (DO NOT EDIT)
+|   +-- panda.config.ts              # PandaCSS design system config
+|   +-- svelte.config.js
+|   +-- vite.config.ts               # API proxy config
++-- Justfile                         # Task runner -- all dev commands
++-- scripts/                         # Bun-based dev scripts (check, dev)
+|   +-- check.ts                     # Parallel check runner
+|   +-- dev.ts                       # Dev server orchestrator
+|   +-- lib/                         # Shared utilities (fmt, proc)
++-- docker-compose.yml               # Local Postgres
++-- Dockerfile                       # Multi-stage production build
++-- sqlc.yml                         # SQL code generation config
++-- .air.toml                        # Go hot-reload config
++-- .github/workflows/ci.yml        # Lint, test, Docker build
 ```
 
 ## Tools
@@ -95,11 +95,11 @@ motophoto/
 | [Bun](https://bun.sh) | Frontend runtime, script runner | Yes |
 | [just](https://just.systems) | Task runner | Yes |
 | [Air](https://github.com/air-verse/air) | Go hot-reload dev server | For `just dev` |
-| [golangci-lint](https://golangci-lint.run) | Go linter | No — skipped if missing |
-| [tygo](https://github.com/gzuidhof/tygo) | Go → TypeScript type generation | No — skipped if missing |
-| [sqlc](https://sqlc.dev) | SQL → Go code generation | For `just generate` |
+| [golangci-lint](https://golangci-lint.run) | Go linter | No -- skipped if missing |
+| [tygo](https://github.com/gzuidhof/tygo) | Go -> TypeScript type generation | No -- skipped if missing |
+| [sqlc](https://sqlc.dev) | SQL -> Go code generation | For `just generate` |
 | [goose](https://github.com/pressly/goose) | Database migrations (runs at startup) | Bundled via Go module |
-| [Biome](https://biomejs.dev) | Frontend formatter and linter | No — skipped if missing |
+| [Biome](https://biomejs.dev) | Frontend formatter and linter | No -- skipped if missing |
 | [Docker](https://docs.docker.com/engine/install/) | Local Postgres | For `just db` |
 
 ## Environment Variables
@@ -125,9 +125,9 @@ The database layer (pgx pool + sqlc generated queries) is connected at startup. 
 
 The `Dockerfile` uses a 3-stage build:
 
-1. **Go stage** (`golang:1.26-alpine`) — compiles the Go binary, compresses with UPX
-2. **Frontend stage** (`oven/bun:1`) — builds SvelteKit with `bun run build`
-3. **Runtime stage** (`oven/bun:1-slim`) — Bun runtime with the Go binary, SvelteKit build output, and `web/entrypoint.ts` as the entrypoint
+1. **Go stage** (`golang:1.26-alpine`) -- compiles the Go binary, compresses with UPX
+2. **Frontend stage** (`oven/bun:1`) -- builds SvelteKit with `bun run build`
+3. **Runtime stage** (`oven/bun:1-slim`) -- Bun runtime with the Go binary, SvelteKit build output, and `web/entrypoint.ts` as the entrypoint
 
 The runtime container runs `bun run /app/web/entrypoint.ts`, which starts the Go backend on port 3001, waits for health, then starts SvelteKit SSR on the public port.
 
@@ -135,8 +135,8 @@ The runtime container runs `bun run /app/web/entrypoint.ts`, which starts the Go
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push:
 
-1. **lint-and-test** — Postgres service container, golangci-lint, Go tests, svelte-check, ESLint
-2. **docker** (master only) — builds and pushes to GitHub Container Registry (GHCR)
+1. **lint-and-test** -- Postgres service container, golangci-lint, Go tests, svelte-check, ESLint
+2. **docker** (master only) -- builds and pushes to GitHub Container Registry (GHCR)
 
 ### Railway
 

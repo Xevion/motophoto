@@ -3,14 +3,64 @@
 //////////
 // source: types.go
 
-export interface Event {
+export interface ListResponse<T extends any> {
+  next_cursor?: string;
+  data: T[];
+}
+export interface ItemResponse<T extends any> {
+  data: T;
+}
+export interface EventResponse {
+  location?: string;
+  description?: string;
+  date?: string;
+  id: string;
+  slug: string;
   name: string;
   sport: string;
-  location: string;
-  date: string;
-  description: string;
+  status: string;
+  galleries?: GalleryResponse[];
   tags: string[];
-  id: number /* int */;
-  photo_count: number /* int */;
-  galleries: number /* int */;
+  photo_count: number /* int64 */;
+}
+export interface GalleryResponse {
+  description?: string;
+  id: string;
+  slug: string;
+  name: string;
+  photo_count: number /* int64 */;
+  sort_order: number /* int32 */;
+}
+export interface CreateEventRequest {
+  location?: string;
+  description?: string;
+  date?: string;
+  status?: string;
+  name: string;
+  slug: string;
+  sport: string;
+  tags: string[];
+}
+export interface UpdateEventRequest {
+  tags?: string[];
+  name?: string;
+  slug?: string;
+  sport?: string;
+  location?: string;
+  description?: string;
+  date?: string;
+  status?: string;
+  sort_order?: number /* int32 */;
+}
+export interface CreateGalleryRequest {
+  description?: string;
+  sort_order?: number /* int32 */;
+  name: string;
+  slug: string;
+}
+export interface UpdateGalleryRequest {
+  name?: string;
+  slug?: string;
+  description?: string;
+  sort_order?: number /* int32 */;
 }

@@ -1,8 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -13,15 +16,19 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 
+	"github.com/Xevion/motophoto/internal/database/db"
 	"github.com/Xevion/motophoto/internal/middleware"
+	"github.com/Xevion/motophoto/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Server struct {
-	router   *chi.Mux
-	db       *pgxpool.Pool
-	sessions *scs.SessionManager
-	port     string
+	router    *chi.Mux
+	db        *pgxpool.Pool
+	events    *service.EventService
+	galleries *service.GalleryService
+	sessions  *scs.SessionManager
+	port      string
 }
 
 func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
@@ -30,11 +37,14 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 		port = "3001"
 	}
 
+	q := db.New(pool)
 	s := &Server{
-		router:   chi.NewRouter(),
-		port:     port,
-		db:       pool,
-		sessions: sessions,
+		router:    chi.NewRouter(),
+		port:      port,
+		db:        pool,
+		events:    service.NewEventService(q),
+		galleries: service.NewGalleryService(q),
+		sessions:  sessions,
 	}
 
 	s.setupMiddleware()
@@ -51,7 +61,7 @@ func (s *Server) setupMiddleware() {
 	s.router.Use(httprate.LimitByRealIP(100, time.Minute))
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -68,69 +78,45 @@ func (s *Server) setupRoutes() {
 		})
 
 		r.Route("/v1", func(r chi.Router) {
-			r.Get("/events", handleListEvents)
-			r.Get("/events/{id}", handleGetEvent)
+			r.Get("/events", s.handleListEvents)
+			r.Post("/events", s.handleCreateEvent)
+			r.Get("/events/{id}", s.handleGetEvent)
+			r.Patch("/events/{id}", s.handleUpdateEvent)
+			r.Delete("/events/{id}", s.handleDeleteEvent)
+			r.Get("/events/{eventId}/galleries", s.handleListGalleries)
+			r.Post("/events/{eventId}/galleries", s.handleCreateGallery)
+			r.Patch("/events/{eventId}/galleries/{id}", s.handleUpdateGallery)
+			r.Delete("/events/{eventId}/galleries/{id}", s.handleDeleteGallery)
 		})
 	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		slog.Error("failed to encode JSON response", "error", err)
+		http.Error(w, `{"error":"internal server error"}`, http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	_, _ = buf.WriteTo(w)
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+func writeServiceError(w http.ResponseWriter, err error, action string) {
+	switch {
+	case errors.Is(err, service.ErrNotFound):
+		writeError(w, http.StatusNotFound, "not found")
+	case errors.Is(err, service.ErrConflict):
+		writeError(w, http.StatusConflict, "already exists")
+	default:
+		slog.Error(fmt.Sprintf("failed to %s", action), "error", err)
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to %s", action))
 	}
-}
-
-// Demo data -- replace with database queries once sqlc is wired up
-
-var demoEvents = []Event{
-	{
-		ID: 1, Name: "Spring MX Championship", Sport: "Motocross",
-		Location: "Thunder Valley MX Park, CO", Date: "2026-03-15",
-		PhotoCount: 847, Galleries: 3,
-		Description: "Round 1 of the Rocky Mountain Motocross Series featuring 250 and 450 classes.",
-		Tags:        []string{"motocross", "mx", "250", "450", "championship"},
-	},
-	{
-		ID: 2, Name: "BMX Freestyle Invitational", Sport: "BMX",
-		Location: "Austin, TX", Date: "2026-02-28",
-		PhotoCount: 312, Galleries: 2,
-		Description: "Top riders compete in park and street disciplines at the annual invitational.",
-		Tags:        []string{"bmx", "freestyle", "park", "street"},
-	},
-	{
-		ID: 3, Name: "Lone Star Rodeo Finals", Sport: "Rodeo",
-		Location: "Fort Worth Stockyards, TX", Date: "2026-02-14",
-		PhotoCount: 523, Galleries: 4,
-		Description: "Season-ending championship rodeo with bull riding, barrel racing, and roping events.",
-		Tags:        []string{"rodeo", "bull riding", "barrel racing", "roping"},
-	},
-	{
-		ID: 4, Name: "Regional Swim Meet", Sport: "Swimming",
-		Location: "Barton Springs Aquatic Center, TX", Date: "2026-01-20",
-		PhotoCount: 1204, Galleries: 6,
-		Description: "High school regional qualifiers -- all strokes and relay events.",
-		Tags:        []string{"swimming", "high school", "regional", "relay"},
-	},
-}
-
-func handleListEvents(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"events": demoEvents,
-		"total":  len(demoEvents),
-	})
-}
-
-func handleGetEvent(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	for _, e := range demoEvents {
-		if fmt.Sprintf("%d", e.ID) == idStr {
-			writeJSON(w, http.StatusOK, e)
-			return
-		}
-	}
-	writeJSON(w, http.StatusNotFound, map[string]string{"error": "event not found"})
 }
 
 func (s *Server) Router() http.Handler {
@@ -142,5 +128,5 @@ func (s *Server) Addr() string {
 }
 
 func (s *Server) Close() {
-	// Clean up resources (db connections, etc.) here
+	// Clean up resources here
 }

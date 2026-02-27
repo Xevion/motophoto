@@ -1,10 +1,6 @@
-export type { Event } from './types.gen';
-import type { Event } from './types.gen';
+import type { EventResponse, ListResponse } from './types.gen';
 
-export interface EventsResponse {
-	events: Event[];
-	total: number;
-}
+export type EventListResponse = ListResponse<EventResponse>;
 
 export interface HealthResponse {
 	status: string;

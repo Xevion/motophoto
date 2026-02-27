@@ -104,12 +104,12 @@ const skeletonPhoto = css({
       <div class={sportLabel}>{data.event.sport}</div>
       <h1 class={title}>{data.event.name}</h1>
       <p class={meta}>
-        {data.event.location} &middot;
-        {new Date(data.event.date).toLocaleDateString('en-US', {
+        {data.event.location}{data.event.date ? ' \u00B7 ' : ''}
+        {data.event.date ? new Date(data.event.date).toLocaleDateString('en-US', {
           month: 'long',
           day: 'numeric',
           year: 'numeric',
-        })}
+        }) : ''}
       </p>
     </header>
 
@@ -121,8 +121,8 @@ const skeletonPhoto = css({
         <div class={statLabel}>Photos</div>
       </div>
       <div class={statBox}>
-        <div class={statValue}>{data.event.galleries}</div>
-        <div class={statLabel}>{data.event.galleries === 1 ? 'Gallery' : 'Galleries'}</div>
+        <div class={statValue}>{data.event.galleries?.length ?? 0}</div>
+        <div class={statLabel}>{(data.event.galleries?.length ?? 0) === 1 ? 'Gallery' : 'Galleries'}</div>
       </div>
     </div>
 

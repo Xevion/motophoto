@@ -57,6 +57,14 @@ export default tseslint.config(
 			},
 		},
 	},
+	// Disable noisy rules for tygo-generated files
+	{
+		files: ['**/*.gen.ts'],
+		rules: {
+			'@typescript-eslint/no-unnecessary-type-constraint': 'off',
+			'@typescript-eslint/no-explicit-any': 'off',
+		},
+	},
 	// Disable type-checked rules for plain JS config files
 	{
 		files: ['**/*.js'],

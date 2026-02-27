@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 import { badge } from 'styled-system/recipes';
-import { cx } from '$lib/utils';
+import { cx } from 'styled-system/css';
 
 type BadgeVariant = 'default' | 'secondary' | 'outline' | 'success' | 'danger';
 

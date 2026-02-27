@@ -1,6 +1,6 @@
 # MotoPhoto
 
-Event photography marketplace — photographers upload action sports photos, customers browse and purchase them.
+Event photography marketplace -- photographers upload action sports photos, customers browse and purchase them.
 
 **Tech stack**: Go (Chi, pgx, sqlc) + SvelteKit 2 (Svelte 5, Bun) + PostgreSQL
 
@@ -25,7 +25,7 @@ Install each tool individually:
 - [Go 1.26+](https://go.dev)
 - [Bun](https://bun.sh)
 - [just](https://just.systems)
-- [Docker](https://docs.docker.com/engine/install/) — for local PostgreSQL
+- [Docker](https://docs.docker.com/engine/install/) -- for local PostgreSQL
 
 Go-based tools:
 
@@ -48,8 +48,8 @@ just dev                        # Start dev servers (Go :3001 + SvelteKit :5173)
 
 ### Platform notes
 
-- **Linux** — develop natively. Install [Docker Engine](https://docs.docker.com/engine/install/) for local Postgres.
-- **Windows** — develop inside [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install). Docker Engine installs directly inside WSL.
+- **Linux** -- develop natively. Install [Docker Engine](https://docs.docker.com/engine/install/) for local Postgres.
+- **Windows** -- develop inside [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install). Docker Engine installs directly inside WSL.
 
 ## Commands
 

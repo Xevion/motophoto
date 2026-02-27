@@ -162,15 +162,17 @@ const tagRow = css({
               <p class={cardDesc}>{event.description}</p>
 
               <div class={cardMeta}>
-                <span>
-                  {new Date(event.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </span>
+                {#if event.date}
+                  <span>
+                    {new Date(event.date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                {/if}
                 <span>{event.photo_count.toLocaleString()} photos</span>
-                <span>{event.galleries} {event.galleries === 1 ? 'gallery' : 'galleries'}</span>
+                <span>{event.galleries?.length ?? 0} {(event.galleries?.length ?? 0) === 1 ? 'gallery' : 'galleries'}</span>
               </div>
 
               <div class={tagRow}>

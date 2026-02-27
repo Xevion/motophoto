@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { HTMLButtonAttributes, HTMLAnchorAttributes } from 'svelte/elements';
 import { button } from 'styled-system/recipes';
-import { cx } from '$lib/utils';
+import { cx } from 'styled-system/css';
 
 type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'danger' | 'link';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';

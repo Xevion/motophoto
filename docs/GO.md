@@ -7,7 +7,7 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 `main.go` does five things:
 
 1. Loads `.env` via godotenv (ignored in production where env vars are set directly)
-2. Initialises logging — tint pretty-printer in development, JSON via `slog.NewJSONHandler` when `LOG_JSON=true`; log level controlled by `LOG_LEVEL`
+2. Initialises logging -- tint pretty-printer in development, JSON via `slog.NewJSONHandler` when `LOG_JSON=true`; log level controlled by `LOG_LEVEL`
 3. Opens the pgx connection pool and runs goose migrations
 4. Creates the session manager (scs backed by PostgreSQL)
 5. Creates the server and starts it with graceful shutdown on SIGINT/SIGTERM
@@ -16,24 +16,31 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 
 The server uses Chi (`go-chi/chi/v5`) with this middleware stack (order matters):
 
-1. **RequestID** — unique ID per request
-2. **RealIP** — trust `X-Forwarded-For` headers
-3. **Logger** — request/response logging
-4. **Recoverer** — panic recovery → 500 instead of crash
-5. **RateLimiter** — 100 requests/minute per real IP (`httprate`)
-6. **CORS** — allows `localhost:5173` and `localhost:3000` origins; credentials enabled
-7. **Compress(5)** — gzip responses
-8. **SessionManager** — loads and saves the scs session for each request
+1. **RequestID** -- unique ID per request
+2. **RealIP** -- trust `X-Forwarded-For` headers
+3. **Logger** -- request/response logging
+4. **Recoverer** -- panic recovery -> 500 instead of crash
+5. **RateLimiter** -- 100 requests/minute per real IP (`httprate`)
+6. **CORS** -- allows `localhost:5173` and `localhost:3000` origins; credentials enabled
+7. **Compress(5)** -- gzip responses
+8. **SessionManager** -- loads and saves the scs session for each request
 
 ### Current Routes
 
 ```
-GET  /api/health          → {"status": "ok"}
-GET  /api/v1/events       → list of demo events
-GET  /api/v1/events/{id}  → single demo event
+GET    /api/health                              -> {"status": "ok"}
+GET    /api/v1/events                           -> list published events (cursor-paginated)
+POST   /api/v1/events                           -> create event
+GET    /api/v1/events/{id}                      -> get event by nanoid or slug (includes galleries)
+PATCH  /api/v1/events/{id}                      -> partial update event
+DELETE /api/v1/events/{id}                      -> delete event
+GET    /api/v1/events/{eventId}/galleries       -> list galleries for event
+POST   /api/v1/events/{eventId}/galleries       -> create gallery
+PATCH  /api/v1/events/{eventId}/galleries/{id}  -> partial update gallery
+DELETE /api/v1/events/{eventId}/galleries/{id}  -> delete gallery
 ```
 
-These currently return hardcoded data. The database layer will replace this.
+All data endpoints use real database queries via sqlc. List endpoints return a `{"data": [...], "next_cursor": "..."}` envelope. Single-item endpoints return `{"data": {...}}`.
 
 ## Adding a New Endpoint
 
@@ -124,7 +131,7 @@ When you need to add or change database queries:
 1. Write or edit SQL in `internal/database/queries/*.sql`
 2. Run `just generate` to regenerate Go code in `internal/database/db/`
 3. Use the generated functions in your handlers
-4. **Never hand-edit files in `internal/database/db/`** — they're overwritten on every generate
+4. **Never hand-edit files in `internal/database/db/`** -- they're overwritten on every generate
 
 ### Query File Format
 
@@ -147,7 +154,7 @@ The annotation (`-- name: ... :one/:many/:exec`) tells sqlc what Go function to 
 
 ### Migrations
 
-SQL migrations live in `internal/database/migrations/` in goose format. They run automatically at server startup via `database.Migrate()` in `main.go` — no manual steps needed. Files use goose's `-- +goose Up` / `-- +goose Down` annotations and numeric prefixes (`001_`, `002_`, etc.).
+SQL migrations live in `internal/database/migrations/` in goose format. They run automatically at server startup via `database.Migrate()` in `main.go` -- no manual steps needed. Files use goose's `-- +goose Up` / `-- +goose Down` annotations and numeric prefixes (`001_`, `002_`, etc.).
 
 ## Error Handling
 
@@ -180,7 +187,7 @@ Beyond Chi, pgx, and scs, the following packages are available for use:
 
 | Package | Purpose |
 |---------|---------|
-| `go-playground/validator/v10` | Struct field validation via struct tags — use for validating request bodies |
+| `go-playground/validator/v10` | Struct field validation via struct tags -- use for validating request bodies |
 | `aws-sdk-go-v2` + `service/s3` | S3-compatible object storage (AWS S3, Cloudflare R2) for photo uploads |
 | `disintegration/imaging` | Image resizing, cropping, and format conversion for thumbnail/watermark generation |
 | `gabriel-vasile/mimetype` | MIME type detection from file content (not file extension) |
@@ -224,3 +231,29 @@ go test ./internal/server/...  # Test specific package
 ```
 
 Test files live next to the code they test: `server_test.go` alongside `server.go`.
+
+## Field Alignment
+
+Go struct fields are padded to satisfy alignment requirements, which can waste memory if fields are ordered carelessly. The `fieldalignment` tool from `golang.org/x/tools` detects structs with suboptimal layout and can reorder fields automatically.
+
+Install:
+
+```bash
+go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest
+```
+
+Check for alignment issues:
+
+```bash
+fieldalignment ./...
+```
+
+Auto-fix by reordering fields:
+
+```bash
+fieldalignment -fix ./...
+```
+
+The tool rewrites the struct field order in-place to minimize padding. It does not change field names, types, or tags -- only order. Re-run after adding new fields to a struct, since the optimal order changes as the struct evolves.
+
+Do not apply `-fix` blindly to generated files (e.g. `internal/database/db/`) -- those are overwritten by `just generate`.

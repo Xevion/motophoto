@@ -4,13 +4,13 @@ Cross-cutting conventions shared between Go and SvelteKit. Language-specific det
 
 ## Vocabulary
 
-Use consistent terms across the entire codebase — backend, frontend, database, comments, commit messages, and UI text.
+Use consistent terms across the entire codebase -- backend, frontend, database, comments, commit messages, and UI text.
 
 ### Core Entities
 
 | Term | Definition | Notes |
 |------|-----------|-------|
-| **Event** | A sporting occasion where photos are taken — motocross race, BMX competition, rodeo, swim meet, etc. | Top-level organizing entity. Has a date, location, and sport type. |
+| **Event** | A sporting occasion where photos are taken -- motocross race, BMX competition, rodeo, swim meet, etc. | Top-level organizing entity. Has a date, location, and sport type. |
 | **Gallery** | A collection of photos from a single event, shot by one photographer. | An event can have multiple galleries (one per photographer). |
 | **Photo** | A single image captured at an event, available for purchase. | Has a storage key, optional watermark, dimensions, price, and metadata tags. |
 | **Photographer** | A user who captures and uploads photos to galleries. | A user with `role = 'photographer'`. |
@@ -24,7 +24,7 @@ Use consistent terms across the entire codebase — backend, frontend, database,
 |------|-----------|-------|
 | **Sport** | The type of athletic activity at an event. | Values: `motocross`, `bmx`, `rodeo`, `swimming`, etc. Stored as text, not an enum. |
 | **Watermark** | A visual overlay on a photo to prevent unpaid use. | Stored as a separate `watermarked_key` alongside the original `storage_key`. |
-| **Storage key** | The identifier for a photo file in object storage. | Opaque string — the storage backend (S3, R2, local) determines the actual URL. |
+| **Storage key** | The identifier for a photo file in object storage. | Opaque string -- the storage backend (S3, R2, local) determines the actual URL. |
 | **Price** | The cost to purchase a photo, in **cents** (USD). | Always stored as integer cents (`price_cents`) to avoid floating-point issues. |
 
 ### Entity Relationships
@@ -74,7 +74,7 @@ flowchart TD
 
 ## Comments
 
-- Explain **why**, not **what** — the code shows what it does
+- Explain **why**, not **what** -- the code shows what it does
 - Don't reference old implementations, migrations, or "this was refactored from..."
 - Don't add banner comments (`// ===`, `// ---`, section separators)
 - TODO comments must include context: `// TODO: handle pagination once we have >100 events`
@@ -86,7 +86,7 @@ func ListEvents() {}
 
 // GOOD
 // ListEvents returns all events, ordered by date descending.
-// Only upcoming events are included — past events are filtered server-side
+// Only upcoming events are included -- past events are filtered server-side
 // to avoid exposing stale gallery data.
 func ListEvents() {}
 ```
@@ -95,9 +95,9 @@ func ListEvents() {}
 
 ### Principles
 
-1. **Wrap with context** — every error should describe what failed, not just that something failed
-2. **Handle at the boundary** — functions return errors, HTTP handlers translate them to status codes
-3. **Don't swallow errors** — if you catch an error, log it or return it. Never `_ = err`
+1. **Wrap with context** -- every error should describe what failed, not just that something failed
+2. **Handle at the boundary** -- functions return errors, HTTP handlers translate them to status codes
+3. **Don't swallow errors** -- if you catch an error, log it or return it. Never `_ = err`
 
 ### Go
 
@@ -122,9 +122,9 @@ Structured logging via Go's `log/slog`. JSON format in production, text in devel
 | Level | Use for |
 |-------|---------|
 | `slog.Debug` | Verbose data useful only when debugging a specific issue |
-| `slog.Info` | Normal operations — server start, request handling, config loaded |
-| `slog.Warn` | Recoverable problems — missing optional config, degraded service |
-| `slog.Error` | Failures that need attention — DB connection lost, handler panics |
+| `slog.Info` | Normal operations -- server start, request handling, config loaded |
+| `slog.Warn` | Recoverable problems -- missing optional config, degraded service |
+| `slog.Error` | Failures that need attention -- DB connection lost, handler panics |
 
 Always include relevant context as structured fields:
 
@@ -171,11 +171,11 @@ All API responses return JSON. Collections return arrays, individual items retur
 ## Git
 
 - Commit messages use conventional commit style: `feat:`, `fix:`, `chore:`, `docs:`, etc.
-- Scale message length to change impact — a rename doesn't need a paragraph
+- Scale message length to change impact -- a rename doesn't need a paragraph
 - Default branch is `master`
 
 ## Testing
 
 - Go tests live alongside the code they test (`foo_test.go` next to `foo.go`)
 - Frontend tests (when added) go in `web/src/**/*.test.ts`
-- Run `just test` before pushing — CI will catch failures, but it's faster to catch locally
+- Run `just test` before pushing -- CI will catch failures, but it's faster to catch locally

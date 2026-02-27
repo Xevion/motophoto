@@ -6,55 +6,55 @@ The frontend is a SvelteKit 2 app using Svelte 5, managed with Bun. See [ARCHITE
 
 ```
 web/
-├── src/
-│   ├── routes/                      # File-based routing
-│   │   ├── +layout.svelte           # Root layout (theme, global styles)
-│   │   ├── +page.svelte             # Home page — event listing grid
-│   │   ├── +page.server.ts          # Home page data loader
-│   │   └── events/
-│   │       └── [id]/
-│   │           ├── +page.svelte     # Event detail page
-│   │           └── +page.server.ts  # Event detail data loader
-│   ├── lib/
-│   │   ├── api.ts                   # API client (apiFetch helper)
-│   │   ├── utils.ts                 # Shared utility functions
-│   │   ├── index.ts                 # Barrel export
-│   │   ├── types.gen.ts             # Auto-generated Go → TypeScript bindings (tygo)
-│   │   ├── logger.client.ts         # Client-side logger (logtape)
-│   │   ├── logger.server.ts         # Server-side logger (logtape)
-│   │   ├── stores/
-│   │   │   └── theme.svelte.ts      # Dark/light theme store ($state rune)
-│   │   ├── components/
-│   │   │   ├── theme-toggle.svelte  # Dark/light mode toggle
-│   │   │   └── ui/                  # Reusable UI primitives (button, badge, …)
-│   │   │       ├── button.svelte
-│   │   │       ├── badge.svelte
-│   │   │       └── index.ts
-│   │   └── recipes/                 # PandaCSS recipes for styled components
-│   │       ├── button.ts
-│   │       ├── badge.ts
-│   │       └── toggle.ts
-│   └── app.html                     # HTML shell
-├── static/                          # Static assets (favicon, etc.)
-├── styled-system/                   # PandaCSS generated output (DO NOT EDIT)
-├── panda.config.ts                  # PandaCSS design system config
-├── svelte.config.js                 # SvelteKit config (@xevion/svelte-adapter-bun)
-├── vite.config.ts                   # Vite config (API proxy)
-├── tsconfig.json
-├── eslint.config.js
-└── package.json
++-- src/
+|   +-- routes/                      # File-based routing
+|   |   +-- +layout.svelte           # Root layout (theme, global styles)
+|   |   +-- +page.svelte             # Home page -- event listing grid
+|   |   +-- +page.server.ts          # Home page data loader
+|   |   +-- events/
+|   |       +-- [id]/
+|   |           +-- +page.svelte     # Event detail page
+|   |           +-- +page.server.ts  # Event detail data loader
+|   +-- lib/
+|   |   +-- api.ts                   # API client (apiFetch helper)
+|   |   +-- utils.ts                 # Shared utility functions
+|   |   +-- index.ts                 # Barrel export
+|   |   +-- types.gen.ts             # Auto-generated Go -> TypeScript bindings (tygo)
+|   |   +-- logger.client.ts         # Client-side logger (logtape)
+|   |   +-- logger.server.ts         # Server-side logger (logtape)
+|   |   +-- stores/
+|   |   |   +-- theme.svelte.ts      # Dark/light theme store ($state rune)
+|   |   +-- components/
+|   |   |   +-- theme-toggle.svelte  # Dark/light mode toggle
+|   |   |   +-- ui/                  # Reusable UI primitives (button, badge, ...)
+|   |   |       +-- button.svelte
+|   |   |       +-- badge.svelte
+|   |   |       +-- index.ts
+|   |   +-- recipes/                 # PandaCSS recipes for styled components
+|   |       +-- button.ts
+|   |       +-- badge.ts
+|   |       +-- toggle.ts
+|   +-- app.html                     # HTML shell
++-- static/                          # Static assets (favicon, etc.)
++-- styled-system/                   # PandaCSS generated output (DO NOT EDIT)
++-- panda.config.ts                  # PandaCSS design system config
++-- svelte.config.js                 # SvelteKit config (@xevion/svelte-adapter-bun)
++-- vite.config.ts                   # Vite config (API proxy)
++-- tsconfig.json
++-- eslint.config.js
++-- package.json
 ```
 
 ## Routing
 
 SvelteKit uses file-based routing. Each route is a directory under `src/routes/` containing:
 
-- **`+page.svelte`** — the page component (what renders)
-- **`+page.server.ts`** — the server-side data loader (runs on the server, fetches data for the page)
+- **`+page.svelte`** -- the page component (what renders)
+- **`+page.server.ts`** -- the server-side data loader (runs on the server, fetches data for the page)
 
 | Route | URL | Description |
 |-------|-----|-------------|
-| `src/routes/` | `/` | Home page — lists all events |
+| `src/routes/` | `/` | Home page -- lists all events |
 | `src/routes/events/[id]/` | `/events/:id` | Event detail page |
 
 ### Adding a New Route
@@ -63,8 +63,8 @@ SvelteKit uses file-based routing. Each route is a directory under `src/routes/`
 
 ```
 src/routes/galleries/
-├── +page.svelte          # Gallery listing page
-└── +page.server.ts       # Load function
++-- +page.svelte          # Gallery listing page
++-- +page.server.ts       # Load function
 ```
 
 2. Write the load function in `+page.server.ts`:
@@ -102,8 +102,8 @@ export const load: PageServerLoad = async () => {
 
 All API calls go through the `apiFetch` helper in `src/lib/api.ts`. It uses relative URLs (e.g., `/api/v1/events`), which are routed to the Go backend automatically:
 
-- **In dev** — Vite's proxy forwards `/api/*` to Go on `:3001`
-- **In production** — SvelteKit's `hooks.server.ts` reverse-proxies `/api/*` to Go on `:3001`
+- **In dev** -- Vite's proxy forwards `/api/*` to Go on `:3001`
+- **In production** -- SvelteKit's `hooks.server.ts` reverse-proxies `/api/*` to Go on `:3001`
 
 ```typescript
 import { apiFetch } from '$lib/api';
@@ -133,7 +133,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 
 ## Svelte 5
 
-This project uses **Svelte 5** with runes — the new reactivity system. Key differences from Svelte 4:
+This project uses **Svelte 5** with runes -- the new reactivity system. Key differences from Svelte 4:
 
 | Svelte 4 | Svelte 5 | Notes |
 |----------|----------|-------|
@@ -147,7 +147,7 @@ See the [Svelte 5 docs](https://svelte.dev/docs/svelte) for the full runes API.
 
 ### PandaCSS
 
-[PandaCSS](https://panda-css.com) is the CSS-in-JS-at-build-time framework used for styling. It generates a `styled-system/` directory with utility functions and CSS variables — never edit that directory.
+[PandaCSS](https://panda-css.com) is the CSS-in-JS-at-build-time framework used for styling. It generates a `styled-system/` directory with utility functions and CSS variables -- never edit that directory.
 
 Config lives in `panda.config.ts`. The design tokens there (colors, spacing, radii) are the single source of truth for the visual language.
 
