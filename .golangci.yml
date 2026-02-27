@@ -28,5 +28,6 @@ linters:
     gosec:
       excludes:
         - G104 # unhandled errors — already covered by errcheck
+        - G706 # log injection — not applicable with slog structured fields
     sloglint:
       kv-only: true

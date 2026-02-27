@@ -9,9 +9,11 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+
+	"github.com/Xevion/motophoto/internal/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -42,10 +44,10 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 }
 
 func (s *Server) setupMiddleware() {
-	s.router.Use(middleware.RequestID)
-	s.router.Use(middleware.RealIP)
-	s.router.Use(middleware.Logger)
-	s.router.Use(middleware.Recoverer)
+	s.router.Use(chimw.RequestID)
+	s.router.Use(chimw.RealIP)
+	s.router.Use(middleware.RequestLogger)
+	s.router.Use(chimw.Recoverer)
 	s.router.Use(httprate.LimitByRealIP(100, time.Minute))
 	s.router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:3000"},
@@ -55,7 +57,7 @@ func (s *Server) setupMiddleware() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
-	s.router.Use(middleware.Compress(5))
+	s.router.Use(chimw.Compress(5))
 	s.router.Use(s.sessions.LoadAndSave)
 }
 
