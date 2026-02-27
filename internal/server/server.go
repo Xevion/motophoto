@@ -44,7 +44,7 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 }
 
 func (s *Server) setupMiddleware() {
-	s.router.Use(chimw.RequestID)
+	s.router.Use(middleware.RequestID)
 	s.router.Use(chimw.RealIP)
 	s.router.Use(middleware.RequestLogger)
 	s.router.Use(chimw.Recoverer)
@@ -82,7 +82,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	}
 }
 
-// Demo data — replace with database queries once sqlc is wired up
+// Demo data -- replace with database queries once sqlc is wired up
 
 var demoEvents = []Event{
 	{
@@ -110,7 +110,7 @@ var demoEvents = []Event{
 		ID: 4, Name: "Regional Swim Meet", Sport: "Swimming",
 		Location: "Barton Springs Aquatic Center, TX", Date: "2026-01-20",
 		PhotoCount: 1204, Galleries: 6,
-		Description: "High school regional qualifiers — all strokes and relay events.",
+		Description: "High school regional qualifiers -- all strokes and relay events.",
 		Tags:        []string{"swimming", "high school", "regional", "relay"},
 	},
 }

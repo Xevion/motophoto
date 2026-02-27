@@ -58,11 +58,11 @@ db cmd="start":
     #!/usr/bin/env bash
     set -euo pipefail
     if ! command -v docker &>/dev/null; then
-        echo "✗ docker not found — install Docker first (see README.md)" >&2
+        echo "x docker not found -- install Docker first (see README.md)" >&2
         exit 1
     fi
     if ! docker info &>/dev/null; then
-        echo "✗ Docker daemon is not running — start Docker first" >&2
+        echo "x Docker daemon is not running -- start Docker first" >&2
         exit 1
     fi
     case "{{cmd}}" in

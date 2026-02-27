@@ -88,7 +88,7 @@ const skeletonPhoto = css({
 </script>
 
 <svelte:head>
-  <title>{data.event ? `${data.event.name} — MotoPhoto` : 'Event Not Found — MotoPhoto'}</title>
+  <title>{data.event ? data.event.name : 'Event Not Found'} &mdash; MotoPhoto</title>
 </svelte:head>
 
 {#if data.event}

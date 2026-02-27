@@ -12,7 +12,7 @@ import (
 func New(ctx context.Context) (*pgxpool.Pool, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		return nil, fmt.Errorf("DATABASE_URL is not set — copy .env.example to .env and configure it")
+		return nil, fmt.Errorf("DATABASE_URL is not set -- copy .env.example to .env and configure it")
 	}
 
 	config, err := pgxpool.ParseConfig(dsn)

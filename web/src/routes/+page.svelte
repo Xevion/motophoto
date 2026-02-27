@@ -133,7 +133,7 @@ const tagRow = css({
 </script>
 
 <svelte:head>
-  <title>MotoPhoto — Event Photography Marketplace</title>
+  <title>MotoPhoto &mdash; Event Photography Marketplace</title>
 </svelte:head>
 
 <div class={page}>

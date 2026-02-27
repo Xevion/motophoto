@@ -97,7 +97,7 @@ export function jsonLogger(): Plugin {
 						}
 					},
 					clearScreen() {
-						// Intentionally empty — JSON mode doesn't clear the terminal
+						// Intentionally empty -- JSON mode doesn't clear the terminal
 					},
 					hasErrorLogged() {
 						return false;

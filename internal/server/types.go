@@ -1,6 +1,6 @@
 package server
 
-// API response types — tygo generates TypeScript bindings from this file.
+// API response types -- tygo generates TypeScript bindings from this file.
 
 type Event struct {
 	Name        string   `json:"name"`

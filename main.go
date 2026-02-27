@@ -21,8 +21,8 @@ import (
 // shouldUseJSON returns true when structured JSON logging should be used.
 //
 // Priority:
-//  1. LOG_JSON env var explicitly set → use that value
-//  2. Otherwise → pretty (the Docker entrypoint sets LOG_JSON=true explicitly)
+//  1. LOG_JSON env var explicitly set -> use that value
+//  2. Otherwise -> pretty (the Docker entrypoint sets LOG_JSON=true explicitly)
 func shouldUseJSON() bool {
 	v, ok := os.LookupEnv("LOG_JSON")
 	if ok {

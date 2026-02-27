@@ -90,7 +90,7 @@ const bunProc = spawn({
 	stderr: 'inherit',
 });
 
-// Monitor both processes — exit if either dies
+// Monitor both processes -- exit if either dies
 async function monitor(name: string, proc: Subprocess) {
 	const exitCode = await proc.exited;
 	log('error', `${name} exited`, { exit_code: exitCode });
