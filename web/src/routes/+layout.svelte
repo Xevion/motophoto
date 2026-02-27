@@ -5,29 +5,77 @@ import { resolve } from '$app/paths';
 import { themeStore } from '$lib/stores/theme.svelte';
 import ThemeToggle from '$lib/components/theme-toggle.svelte';
 import type { Snippet } from 'svelte';
+import { css } from 'styled-system/css';
 
 let { children }: { children: Snippet } = $props();
 
 themeStore.init();
+
+const layout = css({
+	minH: '100vh',
+	bg: 'bg',
+	color: 'fg',
+});
+
+const header = css({
+	position: 'sticky',
+	top: '0',
+	zIndex: '50',
+	w: 'full',
+	borderBottomWidth: '1px',
+	borderColor: 'border',
+	bg: 'bg/95',
+	backdropFilter: 'blur(8px)',
+});
+
+const headerInner = css({
+	mx: 'auto',
+	display: 'flex',
+	h: '14',
+	maxW: '5xl',
+	alignItems: 'center',
+	justifyContent: 'space-between',
+	px: '4',
+});
+
+const logoLink = css({
+	display: 'flex',
+	alignItems: 'center',
+	gap: '2',
+	fontWeight: 'bold',
+	fontSize: 'lg',
+	textDecoration: 'none',
+});
+
+const logoText = css({
+	background: 'linear-gradient(to right, {colors.orange.500}, {colors.orange.700})',
+	backgroundClip: 'text',
+	color: 'transparent',
+});
+
+const main = css({
+	mx: 'auto',
+	maxW: '5xl',
+	px: '4',
+	py: '8',
+});
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+  <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen bg-background text-foreground">
-	<header class="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-		<div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-			<a href={resolve("/")} class="flex items-center gap-2 font-bold text-lg">
-				<span class="bg-gradient-to-r from-primary to-red-500 bg-clip-text text-transparent">
-					MotoPhoto
-				</span>
-			</a>
-			<ThemeToggle />
-		</div>
-	</header>
+<div class={layout}>
+  <header class={header}>
+    <div class={headerInner}>
+      <a href={resolve("/")} class={logoLink}>
+        <span class={logoText}>MotoPhoto</span>
+      </a>
+      <ThemeToggle />
+    </div>
+  </header>
 
-	<main class="mx-auto max-w-5xl px-4 py-8">
-		{@render children()}
-	</main>
+  <main class={main}>
+    {@render children()}
+  </main>
 </div>

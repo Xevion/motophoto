@@ -174,6 +174,47 @@ if err != nil {
 }
 ```
 
+## Key Libraries
+
+Beyond Chi, pgx, and scs, the following packages are available for use:
+
+| Package | Purpose |
+|---------|---------|
+| `go-playground/validator/v10` | Struct field validation via struct tags — use for validating request bodies |
+| `aws-sdk-go-v2` + `service/s3` | S3-compatible object storage (AWS S3, Cloudflare R2) for photo uploads |
+| `disintegration/imaging` | Image resizing, cropping, and format conversion for thumbnail/watermark generation |
+| `gabriel-vasile/mimetype` | MIME type detection from file content (not file extension) |
+| `google/uuid` | UUID generation for photo and entity IDs |
+| `stretchr/testify` | Assertion helpers for Go tests |
+
+### Request Validation
+
+Use `go-playground/validator` for validating decoded request bodies:
+
+```go
+import "github.com/go-playground/validator/v10"
+
+var validate = validator.New()
+
+type CreatePhotoRequest struct {
+    GalleryID uuid.UUID `json:"gallery_id" validate:"required"`
+    Price     int64     `json:"price_cents" validate:"required,min=0"`
+}
+
+func handleCreatePhoto(w http.ResponseWriter, r *http.Request) {
+    var req CreatePhotoRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+        return
+    }
+    if err := validate.Struct(req); err != nil {
+        writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+        return
+    }
+    // ...
+}
+```
+
 ## Testing
 
 ```bash

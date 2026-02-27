@@ -6,7 +6,7 @@ MotoPhoto is an event photography marketplace — photographers upload action sp
 
 | Component | Tech | Port | Directory |
 |-----------|------|------|-----------|
-| Frontend | SvelteKit 2 + Svelte 5 | 5173 (dev) | `web/` |
+| Frontend | SvelteKit 2 + Svelte 5 + PandaCSS | 5173 (dev) | `web/` |
 | Backend | Go + Chi router | 3001 | `main.go`, `internal/` |
 | Database | PostgreSQL 17 | 57512 (local) | `docker-compose.yml` |
 | Sessions | scs + pgxstore | — | `internal/session/` |
@@ -69,7 +69,9 @@ motophoto/
 ├── web/                             # SvelteKit frontend (see SVELTE.md)
 │   ├── src/
 │   │   ├── routes/                  # File-based routing
-│   │   └── lib/                     # Shared code (api.ts, components)
+│   │   └── lib/                     # Shared code (api.ts, components, recipes)
+│   ├── styled-system/               # PandaCSS generated output (DO NOT EDIT)
+│   ├── panda.config.ts              # PandaCSS design system config
 │   ├── svelte.config.js
 │   └── vite.config.ts               # API proxy config
 ├── Justfile                         # Task runner — all dev commands
@@ -97,6 +99,7 @@ motophoto/
 | [tygo](https://github.com/gzuidhof/tygo) | Go → TypeScript type generation | No — skipped if missing |
 | [sqlc](https://sqlc.dev) | SQL → Go code generation | For `just generate` |
 | [goose](https://github.com/pressly/goose) | Database migrations (runs at startup) | Bundled via Go module |
+| [Biome](https://biomejs.dev) | Frontend formatter and linter | No — skipped if missing |
 | [Docker](https://docs.docker.com/engine/install/) | Local Postgres | For `just db` |
 
 ## Environment Variables

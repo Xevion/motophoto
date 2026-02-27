@@ -62,9 +62,9 @@ export default tseslint.config(
 		files: ['**/*.js'],
 		...tseslint.configs.disableTypeChecked,
 	},
-	// Disable type-checked rules for files not in tsconfig
+	// Disable type-checked rules for .mjs files and root config files not in tsconfig
 	{
-		files: ['entrypoint.ts', 'vite-plugin-json-logger.ts'],
+		files: ['**/*.mjs', 'panda.config.ts', 'entrypoint.ts', 'vite-plugin-json-logger.ts'],
 		...tseslint.configs.disableTypeChecked,
 	},
 );

@@ -4,6 +4,9 @@ import adapter from '@xevion/svelte-adapter-bun';
 const config = {
 	kit: {
 		adapter: adapter(),
+		alias: {
+			'styled-system': './styled-system/*',
+		},
 	},
 };
 

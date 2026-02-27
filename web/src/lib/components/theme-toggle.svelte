@@ -2,8 +2,12 @@
 import { themeStore } from '$lib/stores/theme.svelte';
 import Sun from '@lucide/svelte/icons/sun';
 import Moon from '@lucide/svelte/icons/moon';
-import { Button } from '$lib/components/ui/button/index.js';
+import { Toggle } from '@ark-ui/svelte';
+import { css } from 'styled-system/css';
+import { toggle } from 'styled-system/recipes';
 import { tick } from 'svelte';
+
+const classes = toggle({ variant: 'outline', size: 'md' });
 
 /**
  * Theme toggle with View Transitions API circular reveal animation.
@@ -50,12 +54,46 @@ function handleToggle(event: MouseEvent) {
 }
 </script>
 
-<Button onclick={handleToggle} variant="outline" size="icon">
-	<Sun
-		class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-	/>
-	<Moon
-		class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-	/>
-	<span class="sr-only">Toggle theme</span>
-</Button>
+<Toggle.Root
+  class={classes.root}
+  pressed={themeStore.isDark}
+  onPressedChange={() => undefined}
+  onclick={handleToggle}
+  aria-label="Toggle theme"
+>
+  <Sun
+    class={css({
+      position: 'absolute',
+      w: '4',
+      h: '4',
+      transition: 'all',
+      transitionDuration: '200ms',
+      rotate: '0deg',
+      scale: '1',
+      _dark: { rotate: '-90deg', scale: '0' },
+    })}
+  />
+  <Moon
+    class={css({
+      position: 'absolute',
+      w: '4',
+      h: '4',
+      transition: 'all',
+      transitionDuration: '200ms',
+      rotate: '90deg',
+      scale: '0',
+      _dark: { rotate: '0deg', scale: '1' },
+    })}
+  />
+  <span class={css({
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    padding: '0',
+    margin: '-1px',
+    overflow: 'hidden',
+    clip: 'rect(0,0,0,0)',
+    whiteSpace: 'nowrap',
+    borderWidth: '0',
+  })}>Toggle theme</span>
+</Toggle.Root>

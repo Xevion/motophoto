@@ -14,9 +14,19 @@
       "groupName": "svelte"
     },
     {
-      "description": "Group Tailwind ecosystem",
-      "matchPackagePatterns": ["^@tailwindcss/", "^tailwind", "^tw-"],
-      "groupName": "tailwind"
+      "description": "Group PandaCSS ecosystem",
+      "matchPackagePatterns": ["^@pandacss/", "^@park-ui/"],
+      "groupName": "pandacss"
+    },
+    {
+      "description": "Group Biome formatter",
+      "matchPackagePatterns": ["^@biomejs/"],
+      "groupName": "biome"
+    },
+    {
+      "description": "Group Ark UI headless components",
+      "matchPackagePatterns": ["^@ark-ui/"],
+      "groupName": "ark-ui"
     },
     {
       "description": "Group ESLint and linting tools",
