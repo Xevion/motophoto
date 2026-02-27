@@ -4,11 +4,13 @@ The Go backend is a JSON API server built with Chi, serving the SvelteKit fronte
 
 ## Entry Point
 
-`main.go` does three things:
+`main.go` does five things:
 
-1. Loads `.env` via godotenv
-2. Creates a structured JSON logger (`slog`)
-3. Creates the server and starts it with graceful shutdown on SIGINT/SIGTERM
+1. Loads `.env` via godotenv (ignored in production where env vars are set directly)
+2. Initialises logging — tint pretty-printer in development, JSON via `slog.NewJSONHandler` when `LOG_JSON=true`; log level controlled by `LOG_LEVEL`
+3. Opens the pgx connection pool and runs goose migrations
+4. Creates the session manager (scs backed by PostgreSQL)
+5. Creates the server and starts it with graceful shutdown on SIGINT/SIGTERM
 
 ## Router & Middleware
 
@@ -18,8 +20,10 @@ The server uses Chi (`go-chi/chi/v5`) with this middleware stack (order matters)
 2. **RealIP** — trust `X-Forwarded-For` headers
 3. **Logger** — request/response logging
 4. **Recoverer** — panic recovery → 500 instead of crash
-5. **Compress(5)** — gzip responses
-6. **CORS** — allows `localhost:5173` and `localhost:3000` origins
+5. **RateLimiter** — 100 requests/minute per real IP (`httprate`)
+6. **CORS** — allows `localhost:5173` and `localhost:3000` origins; credentials enabled
+7. **Compress(5)** — gzip responses
+8. **SessionManager** — loads and saves the scs session for each request
 
 ### Current Routes
 
@@ -93,11 +97,25 @@ w.Header().Set("Content-Type", "application/json")
 json.NewEncoder(w).Encode(data)
 ```
 
+## Sessions
+
+Session management uses **scs** (`alexedwards/scs/v2`) backed by a PostgreSQL store (`scs/pgxstore`). The session manager is created in `internal/session/session.go` and injected into the server.
+
+Key settings:
+
+| Setting | Value |
+|---------|-------|
+| Lifetime | 24 hours |
+| Idle timeout | 30 minutes |
+| Cookie name | `session_id` |
+| SameSite | Lax |
+| HttpOnly | true |
+
+The store uses the `sessions` table (created by migration `001_create_sessions.sql`). An index on `expiry` ensures expired session cleanup stays fast.
+
 ## Database & sqlc
 
 The database layer uses **pgx/v5** (connection pool) with **sqlc** for type-safe SQL.
-
-> **Current status**: The schema and queries exist but aren't wired into the API handlers yet. Endpoints return hardcoded demo data.
 
 ### sqlc Workflow
 
@@ -129,7 +147,7 @@ The annotation (`-- name: ... :one/:many/:exec`) tells sqlc what Go function to 
 
 ### Migrations
 
-SQL migrations live in `internal/database/migrations/` with numeric prefixes (`001_`, `002_`, etc.). These are applied manually for now — no migration runner is configured yet.
+SQL migrations live in `internal/database/migrations/` in goose format. They run automatically at server startup via `database.Migrate()` in `main.go` — no manual steps needed. Files use goose's `-- +goose Up` / `-- +goose Down` annotations and numeric prefixes (`001_`, `002_`, etc.).
 
 ## Error Handling
 

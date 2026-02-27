@@ -4,20 +4,12 @@ MotoPhoto is an event photography marketplace — photographers upload action sp
 
 ## System Overview
 
-```
-┌─────────────────────────────────────────────────┐
-│                   Client Browser                 │
-│                                                  │
-│  SvelteKit (SSR) ──► Go API ──► PostgreSQL       │
-│       :5173              :3001       :57512       │
-└─────────────────────────────────────────────────┘
-```
-
 | Component | Tech | Port | Directory |
 |-----------|------|------|-----------|
 | Frontend | SvelteKit 2 + Svelte 5 | 5173 (dev) | `web/` |
 | Backend | Go + Chi router | 3001 | `main.go`, `internal/` |
 | Database | PostgreSQL 17 | 57512 (local) | `docker-compose.yml` |
+| Sessions | scs + pgxstore | — | `internal/session/` |
 
 ## Request Flow
 
@@ -30,10 +22,12 @@ Two servers run simultaneously via `just dev`:
 
 Vite proxies `/api` requests to the Go backend (`web/vite.config.ts`). The browser only talks to `:5173`.
 
-```
-Browser ──► Vite (:5173)
-              ├── static assets, HMR ──► browser
-              └── /api/* proxy ──► Go (:3001) ──► Postgres
+```mermaid
+flowchart LR
+    Browser -->|request| Vite["Vite :5173"]
+    Vite -->|static assets / HMR| Browser
+    Vite -->|/api/* proxy| Go["Go :3001"]
+    Go --> Postgres["PostgreSQL :57512"]
 ```
 
 ### Production
@@ -45,10 +39,12 @@ The container runs two processes orchestrated by `web/entrypoint.ts`:
 
 SvelteKit's `hooks.server.ts` forwards `/api/*` requests to the Go backend. The entrypoint starts Go first, waits for a health check (`/api/health`), then starts SvelteKit.
 
-```
-Browser ──► SvelteKit SSR (:$PORT)
-              ├── SSR page rendering
-              └── /api/* proxy (hooks.server.ts) ──► Go (:3001) ──► Postgres
+```mermaid
+flowchart LR
+    Browser -->|request| SSR["SvelteKit SSR :$PORT"]
+    SSR -->|SSR page rendering| Browser
+    SSR -->|/api/* proxy\nhooks.server.ts| Go["Go :3001"]
+    Go --> Postgres["PostgreSQL"]
 ```
 
 ## Project Structure
@@ -58,12 +54,16 @@ motophoto/
 ├── main.go                          # Entry point — loads env, creates logger, starts server
 ├── internal/
 │   ├── server/
-│   │   └── server.go                # Chi router setup, middleware, route definitions
+│   │   ├── server.go                # Chi router setup, middleware, route definitions
+│   │   └── types.go                 # API response types (tygo generates TS bindings)
 │   ├── database/
 │   │   ├── database.go              # pgx connection pool creation
-│   │   ├── migrations/              # SQL migration files (sequential, numbered)
+│   │   ├── migrate.go               # goose migration runner (runs at startup)
+│   │   ├── migrations/              # SQL migration files (goose format)
 │   │   ├── queries/                 # sqlc query definitions (.sql)
 │   │   └── db/                      # sqlc generated Go code (DO NOT EDIT)
+│   ├── session/
+│   │   └── session.go               # scs session manager backed by PostgreSQL
 │   └── middleware/
 │       └── middleware.go            # Custom middleware (placeholder)
 ├── web/                             # SvelteKit frontend (see SVELTE.md)
@@ -88,6 +88,7 @@ motophoto/
 
 | Tool | Purpose | Required |
 |------|---------|----------|
+| [mise](https://mise.jdx.dev) | Tool version manager (installs everything below) | Recommended |
 | [Go 1.26+](https://go.dev) | Backend language | Yes |
 | [Bun](https://bun.sh) | Frontend runtime, script runner | Yes |
 | [just](https://just.systems) | Task runner | Yes |
@@ -95,6 +96,7 @@ motophoto/
 | [golangci-lint](https://golangci-lint.run) | Go linter | No — skipped if missing |
 | [tygo](https://github.com/gzuidhof/tygo) | Go → TypeScript type generation | No — skipped if missing |
 | [sqlc](https://sqlc.dev) | SQL → Go code generation | For `just generate` |
+| [goose](https://github.com/pressly/goose) | Database migrations (runs at startup) | Bundled via Go module |
 | [Docker](https://docs.docker.com/engine/install/) | Local Postgres | For `just db` |
 
 ## Environment Variables
@@ -103,6 +105,8 @@ motophoto/
 |----------|---------|-------------|
 | `DATABASE_URL` | (see `.env.example`) | PostgreSQL connection string |
 | `PORT` | `3001` | Go server listen port |
+| `LOG_JSON` | `false` | Set to `true` to emit JSON logs (production default) |
+| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn`, `error` |
 
 ## Database
 
@@ -110,7 +114,7 @@ PostgreSQL 17 runs locally via docker-compose on port **57512** (mapped from con
 
 Connection string: `postgres://motophoto:motophoto@localhost:57512/motophoto`
 
-The database layer (pgx pool + sqlc generated queries) exists but is **not yet wired into the API handlers** — current endpoints return hardcoded demo data. See [GO.md](GO.md) for the sqlc workflow.
+The database layer (pgx pool + sqlc generated queries) is connected at startup. Migrations run automatically via goose on every server start. See [GO.md](GO.md) for the sqlc workflow and migration details.
 
 ## Deployment
 

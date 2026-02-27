@@ -29,14 +29,19 @@ Use consistent terms across the entire codebase — backend, frontend, database,
 
 ### Entity Relationships
 
-```
-User (photographer) ──creates──► Event
-                     ──creates──► Gallery ──belongs to──► Event
-                                  Gallery ──contains──► Photo
-                                                         Photo ──has many──► Tag
+```mermaid
+flowchart TD
+    Photographer["User (photographer)"]
+    Customer["User (customer)"]
 
-User (customer) ──browses──► Event ──► Gallery ──► Photo
-                ──purchases──► Photo
+    Photographer -->|creates| Event
+    Photographer -->|creates| Gallery
+    Gallery -->|belongs to| Event
+    Gallery -->|contains| Photo
+    Photo -->|has many| Tag
+
+    Customer -->|browses| Event
+    Customer -->|purchases| Photo
 ```
 
 ### Anti-Patterns
