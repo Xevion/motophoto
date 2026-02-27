@@ -7,7 +7,6 @@ import { css } from 'styled-system/css';
 import type { PageData } from './$types';
 
 const { data }: { data: PageData } = $props();
-const event = data.event;
 
 const wrapper = css({
 	maxW: '3xl',
@@ -89,10 +88,10 @@ const skeletonPhoto = css({
 </script>
 
 <svelte:head>
-  <title>{event ? `${event.name} — MotoPhoto` : 'Event Not Found — MotoPhoto'}</title>
+  <title>{data.event ? `${data.event.name} — MotoPhoto` : 'Event Not Found — MotoPhoto'}</title>
 </svelte:head>
 
-{#if event}
+{#if data.event}
   <div class={wrapper}>
     <div class={backRow}>
       <Button variant="ghost" size="sm" href={resolve("/")}>
@@ -102,11 +101,11 @@ const skeletonPhoto = css({
     </div>
 
     <header>
-      <div class={sportLabel}>{event.sport}</div>
-      <h1 class={title}>{event.name}</h1>
+      <div class={sportLabel}>{data.event.sport}</div>
+      <h1 class={title}>{data.event.name}</h1>
       <p class={meta}>
-        {event.location} &middot;
-        {new Date(event.date).toLocaleDateString('en-US', {
+        {data.event.location} &middot;
+        {new Date(data.event.date).toLocaleDateString('en-US', {
           month: 'long',
           day: 'numeric',
           year: 'numeric',
@@ -114,21 +113,21 @@ const skeletonPhoto = css({
       </p>
     </header>
 
-    <p class={desc}>{event.description}</p>
+    <p class={desc}>{data.event.description}</p>
 
     <div class={statsRow}>
       <div class={statBox}>
-        <div class={statValue}>{event.photo_count.toLocaleString()}</div>
+        <div class={statValue}>{data.event.photo_count.toLocaleString()}</div>
         <div class={statLabel}>Photos</div>
       </div>
       <div class={statBox}>
-        <div class={statValue}>{event.galleries}</div>
-        <div class={statLabel}>{event.galleries === 1 ? 'Gallery' : 'Galleries'}</div>
+        <div class={statValue}>{data.event.galleries}</div>
+        <div class={statLabel}>{data.event.galleries === 1 ? 'Gallery' : 'Galleries'}</div>
       </div>
     </div>
 
     <div class={tagRow}>
-      {#each event.tags as tag (tag)}
+      {#each data.event.tags as tag (tag)}
         <Badge variant="secondary">{tag}</Badge>
       {/each}
     </div>

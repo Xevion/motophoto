@@ -5,7 +5,6 @@ import { css } from 'styled-system/css';
 import type { PageData } from './$types';
 
 const { data }: { data: PageData } = $props();
-const events = data.events;
 
 const page = css({
 	display: 'flex',
@@ -146,12 +145,12 @@ const tagRow = css({
   <section>
     <div class={sectionHeader}>
       <h2 class={sectionTitle}>Upcoming Events</h2>
-      <span class={sectionCount}>{events.length} events</span>
+      <span class={sectionCount}>{data.events.length} events</span>
     </div>
 
     <div class={css({ mt: '4' })}>
       <div class={grid}>
-        {#each events as event (event.id)}
+        {#each data.events as event (event.id)}
           <a href={resolve('/events/[id]', { id: String(event.id) })} class={cardLink}>
             <div class={card}>
               <div>
