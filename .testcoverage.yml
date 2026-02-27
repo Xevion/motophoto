@@ -4,6 +4,10 @@ threshold:
   file: 30
 exclude:
   paths:
-    - internal/database/db/   # sqlc-generated code
+    - internal/database/db/       # sqlc-generated code
     - .*_test\.go$
-    - internal/testutil/      # test helpers
+    - internal/testutil/          # test helpers
+    - main\.go$                   # entry point, not unit-testable
+    - internal/database/database\.go$  # wiring: requires live DB
+    - internal/database/migrate\.go$   # wiring: requires live DB
+    - internal/session/session\.go$    # wiring: requires live DB

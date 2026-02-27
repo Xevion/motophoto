@@ -90,6 +90,8 @@ interface Check {
 	cmd: string[];
 	cwd?: string;
 	hint?: string;
+	warnIfExitCode?: number;
+	warnHint?: string;
 	subsystem: 'frontend' | 'backend';
 }
 
@@ -130,9 +132,12 @@ const checks: Check[] = [
 		},
 		{
 			// Integration tests require Postgres at :57512 (docker-compose). Run `just db start` first.
+			// Exits 2 when tests pass but coverage is below threshold (warn-only in check).
 			name: 'backend-test',
 			subsystem: 'backend' as const,
-			cmd: ['go', 'test', '-race', '-count=1', './...']
+			cmd: ['bash', '-c', 'go test -race -count=1 -coverprofile=coverage.out ./...; t=$?; [ $t -ne 0 ] && exit $t; go tool go-test-coverage --config=.testcoverage.yml || exit 2'],
+			warnIfExitCode: 2,
+			warnHint: 'Coverage below threshold -- CI will reject this commit. Run `just test-cover` for details.',
 		},
 	] : []),
 	...(hasSqlc ? [{
@@ -167,12 +172,20 @@ await raceInOrder(promises, checks, (r) => {
 	if (isStderrTTY) process.stderr.write('\r\x1b[K');
 
 	const subsystemLabel = c('2', `[${r.subsystem}]`);
-	if (r.exitCode !== 0) {
+	const isWarn = r.warnIfExitCode !== undefined && r.exitCode === r.warnIfExitCode;
+	if (r.exitCode !== 0 && !isWarn) {
 		process.stdout.write(c('31', `✗ ${r.name}`) + ` ${subsystemLabel} (${r.elapsed}s)\n`);
 		if (r.stdout) process.stdout.write(r.stdout);
 		if (r.stderr) process.stderr.write(r.stderr);
 		if (r.hint) {
 			process.stdout.write(c('2', `  hint: ${r.hint}`) + '\n');
+		}
+	} else if (isWarn) {
+		process.stdout.write(c('33', `⚠ ${r.name}`) + ` ${subsystemLabel} (${r.elapsed}s)\n`);
+		if (r.stdout) process.stdout.write(r.stdout);
+		if (r.stderr) process.stderr.write(r.stderr);
+		if (r.warnHint) {
+			process.stdout.write(c('33', `  warning: ${r.warnHint}`) + '\n');
 		}
 	} else {
 		process.stdout.write(c('32', `✓ ${r.name}`) + ` ${subsystemLabel} (${r.elapsed}s)\n`);
@@ -182,6 +195,8 @@ await raceInOrder(promises, checks, (r) => {
 if (interval) clearInterval(interval);
 if (isStderrTTY) process.stderr.write('\r\x1b[K');
 
-const failed = Object.values(results).some((r) => r.exitCode !== 0);
+const failed = Object.values(results).some(
+	(r) => r.exitCode !== 0 && !(r.warnIfExitCode !== undefined && r.exitCode === r.warnIfExitCode)
+);
 
 process.exit(failed ? 1 : 0);

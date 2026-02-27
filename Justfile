@@ -21,9 +21,10 @@ dev *flags:
 test *flags:
     go test -race -count=1 {{flags}} ./...
 
-# Run tests with coverage report
+# Run tests with coverage report and enforce thresholds (.testcoverage.yml)
 test-cover:
     go test -race -count=1 -coverprofile=coverage.out ./...
+    go tool go-test-coverage --config=.testcoverage.yml
     go tool cover -html=coverage.out -o coverage.html
     @echo "Coverage report: coverage.html"
 
