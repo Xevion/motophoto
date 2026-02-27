@@ -80,16 +80,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-// Propagate the Railway request ID to backend fetches made during SSR load()
-// calls so that Go backend log entries can be correlated with the originating
-// page request. IP headers are intentionally NOT injected here -- the backend
-// receives those from its actual network layer (Railway's edge), not from SSR.
+// Propagate the request ID and client IP headers to backend fetches during SSR.
+// The Go backend's network peer is SvelteKit, not Railway's edge, so IP headers
+// must be forwarded explicitly or the backend logs [::1] for every page load.
 export const handleFetch: HandleFetch = async ({ request, fetch, event }) => {
+	const headers = new Headers(request.headers);
+
 	const requestId = event.locals.requestId;
-	if (requestId && !request.headers.has('x-request-id')) {
-		const headers = new Headers(request.headers);
+	if (requestId && !headers.has('x-request-id')) {
 		headers.set('x-request-id', requestId);
-		request = new Request(request, { headers });
 	}
-	return fetch(request);
+
+	for (const name of ['x-real-ip', 'x-forwarded-for'] as const) {
+		const value = event.request.headers.get(name);
+		if (value !== null && !headers.has(name)) {
+			headers.set(name, value);
+		}
+	}
+
+	return fetch(new Request(request, { headers }));
 };
