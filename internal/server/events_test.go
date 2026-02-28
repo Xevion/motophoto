@@ -18,12 +18,22 @@ import (
 // doRequest is a small helper to reduce httptest boilerplate.
 func doRequest(t *testing.T, handler http.Handler, method, path string, body string) *httptest.ResponseRecorder {
 	t.Helper()
+	return doRequestWithCookies(t, handler, method, path, body, nil)
+}
+
+// doRequestWithCookies is like doRequest but attaches the given cookies to the
+// request. Use this for endpoints that require authentication.
+func doRequestWithCookies(t *testing.T, handler http.Handler, method, path string, body string, cookies []*http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
 	var req *http.Request
 	if body != "" {
 		req = httptest.NewRequest(method, path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 	} else {
 		req = httptest.NewRequest(method, path, nil)
+	}
+	for _, c := range cookies {
+		req.AddCookie(c)
 	}
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -82,14 +92,13 @@ func TestHandleGetEvent(t *testing.T) {
 func TestHandleCreateEvent(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnv(t)
-	ctx := t.Context()
 
-	dbfactory.User(ctx, t, env.Pool, &dbfactory.UserOpts{ID: new("stub-user")})
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
 	t.Run("valid", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"New Event","slug":"new-event","sport":"motocross"}`
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events", body, []*http.Cookie{session})
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
@@ -103,13 +112,13 @@ func TestHandleCreateEvent(t *testing.T) {
 	t.Run("missing required fields", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Incomplete"}`
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events", body, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events", `{bad`)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events", `{bad`, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
@@ -120,11 +129,12 @@ func TestHandleUpdateEvent(t *testing.T) {
 	ctx := t.Context()
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
 	t.Run("valid partial update", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Updated Via API"}`
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID, body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID, body, []*http.Cookie{session})
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -137,13 +147,13 @@ func TestHandleUpdateEvent(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Nope"}`
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/nonexistent", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/nonexistent", body, []*http.Cookie{session})
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID, `{bad`)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID, `{bad`, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
@@ -154,8 +164,9 @@ func TestHandleDeleteEvent(t *testing.T) {
 	ctx := t.Context()
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
-	rr := doRequest(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID, "")
+	rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID, "", []*http.Cookie{session})
 	assert.Equal(t, http.StatusNoContent, rr.Code)
 
 	// Verify the event is actually gone.
@@ -191,11 +202,12 @@ func TestHandleCreateGallery(t *testing.T) {
 	ctx := t.Context()
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
 	t.Run("valid", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Podium Shots","slug":"podium-shots"}`
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", body, []*http.Cookie{session})
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
@@ -209,20 +221,20 @@ func TestHandleCreateGallery(t *testing.T) {
 	t.Run("missing required fields", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"No Slug"}`
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", body, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", `{bad`)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events/"+event.ID+"/galleries", `{bad`, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("event not found", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Orphan","slug":"orphan"}`
-		rr := doRequest(t, env.Handler, http.MethodPost, "/api/v1/events/nonexistent/galleries", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events/nonexistent/galleries", body, []*http.Cookie{session})
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 }
@@ -234,11 +246,12 @@ func TestHandleUpdateGallery(t *testing.T) {
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
 	gal := dbfactory.Gallery(ctx, t, env.Galleries, event.ID, nil)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
 	t.Run("valid partial update", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Renamed Gallery"}`
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, body, []*http.Cookie{session})
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -251,13 +264,13 @@ func TestHandleUpdateGallery(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
 		body := `{"name":"Nope"}`
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/nonexistent", body)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/nonexistent", body, []*http.Cookie{session})
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
 		t.Parallel()
-		rr := doRequest(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, `{bad`)
+		rr := doRequestWithCookies(t, env.Handler, http.MethodPatch, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, `{bad`, []*http.Cookie{session})
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
@@ -269,11 +282,12 @@ func TestHandleDeleteGallery(t *testing.T) {
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
 	gal := dbfactory.Gallery(ctx, t, env.Galleries, event.ID, nil)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
-	rr := doRequest(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, "")
+	rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, "", []*http.Cookie{session})
 	assert.Equal(t, http.StatusNoContent, rr.Code)
 
-	// Verify the gallery is actually gone.
+	// Verify the gallery is actually gone (list galleries is public).
 	rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/"+event.ID+"/galleries", "")
 	assert.Equal(t, http.StatusOK, rr.Code)
 

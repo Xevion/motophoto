@@ -2,17 +2,98 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
+	"github.com/Xevion/motophoto/internal/database/db"
 )
 
 type contextKey string
 
-const loggerKey contextKey = "logger"
+const (
+	loggerKey  contextKey = "logger"
+	userCtxKey contextKey = "user"
+)
+
+// Auth holds the session manager and DB queries needed to authenticate requests.
+type Auth struct {
+	sessions *scs.SessionManager
+	queries  *db.Queries
+}
+
+// NewAuth creates an Auth middleware with the given session manager and queries.
+func NewAuth(sessions *scs.SessionManager, queries *db.Queries) *Auth {
+	return &Auth{sessions: sessions, queries: queries}
+}
+
+// UserFromContext retrieves the authenticated user stored by RequireAuth.
+// Returns nil, false if no user is attached (e.g. on unauthenticated routes).
+func UserFromContext(ctx context.Context) (*db.User, bool) {
+	user, ok := ctx.Value(userCtxKey).(*db.User)
+	return user, ok
+}
+
+// RequireAuth rejects unauthenticated requests with 401 and banned users with
+// 403. On success it attaches the user to the request context so downstream
+// handlers can call UserFromContext.
+func (a *Auth) RequireAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := a.sessions.GetString(r.Context(), "user_id")
+		if userID == "" {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		user, err := a.queries.GetUserByID(r.Context(), userID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		if err != nil {
+			LoggerFromContext(r.Context()).Error("looking up user by id", "error", err)
+			writeError(w, http.StatusInternalServerError, "authentication failed")
+			return
+		}
+
+		if user.BannedAt.Valid {
+			writeError(w, http.StatusForbidden, "account is banned")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), userCtxKey, &user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// RequireRole wraps RequireAuth and additionally enforces that the authenticated
+// user has the given role. Returns 403 if the role does not match.
+func (a *Auth) RequireRole(role db.UserRole) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return a.RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user, _ := UserFromContext(r.Context())
+			if user.Role != role {
+				writeError(w, http.StatusForbidden, "insufficient permissions")
+				return
+			}
+			next.ServeHTTP(w, r)
+		}))
+	}
+}
+
+// writeError writes a JSON error response. Duplicated here to avoid an import
+// cycle between the middleware and server packages.
+func writeError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(`{"error":"` + msg + `"}`))
+}
 
 // LoggerFromContext retrieves the request-scoped logger stored by RequestLogger.
 // Falls back to the default slog logger if none is found.

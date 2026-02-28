@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 
+	"github.com/Xevion/motophoto/internal/middleware"
 	"github.com/Xevion/motophoto/internal/service"
 )
 
@@ -84,11 +85,9 @@ func (s *Server) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: replace with authenticated user ID once auth middleware is wired up
-	photographerID := "stub-user"
-
+	user, _ := middleware.UserFromContext(r.Context())
 	event, err := s.events.Create(r.Context(), service.CreateEventParams{
-		PhotographerID: photographerID,
+		PhotographerID: user.ID,
 		Name:           req.Name, Slug: req.Slug, Sport: req.Sport,
 		Location: req.Location, Description: req.Description,
 		Date: req.Date, Status: req.Status, Tags: req.Tags,

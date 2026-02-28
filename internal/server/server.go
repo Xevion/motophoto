@@ -29,6 +29,7 @@ type Server struct {
 	events    *service.EventService
 	galleries *service.GalleryService
 	sessions  *scs.SessionManager
+	auth      *middleware.Auth
 	port      string
 }
 
@@ -47,6 +48,7 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 		events:    service.NewEventService(q),
 		galleries: service.NewGalleryService(q),
 		sessions:  sessions,
+		auth:      middleware.NewAuth(sessions, q),
 	}
 
 	s.setupMiddleware()
@@ -84,15 +86,21 @@ func (s *Server) setupRoutes() {
 			r.Post("/auth/login", s.handleLogin)
 			r.Post("/auth/logout", s.handleLogout)
 
+			// Public read endpoints
 			r.Get("/events", s.handleListEvents)
-			r.Post("/events", s.handleCreateEvent)
 			r.Get("/events/{id}", s.handleGetEvent)
-			r.Patch("/events/{id}", s.handleUpdateEvent)
-			r.Delete("/events/{id}", s.handleDeleteEvent)
 			r.Get("/events/{eventId}/galleries", s.handleListGalleries)
-			r.Post("/events/{eventId}/galleries", s.handleCreateGallery)
-			r.Patch("/events/{eventId}/galleries/{id}", s.handleUpdateGallery)
-			r.Delete("/events/{eventId}/galleries/{id}", s.handleDeleteGallery)
+
+			// Photographer-only write endpoints
+			r.Group(func(r chi.Router) {
+				r.Use(s.auth.RequireRole(db.UserRolePhotographer))
+				r.Post("/events", s.handleCreateEvent)
+				r.Patch("/events/{id}", s.handleUpdateEvent)
+				r.Delete("/events/{id}", s.handleDeleteEvent)
+				r.Post("/events/{eventId}/galleries", s.handleCreateGallery)
+				r.Patch("/events/{eventId}/galleries/{id}", s.handleUpdateGallery)
+				r.Delete("/events/{eventId}/galleries/{id}", s.handleDeleteGallery)
+			})
 		})
 	})
 }
