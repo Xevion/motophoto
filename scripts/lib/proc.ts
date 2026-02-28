@@ -89,11 +89,11 @@ export function runPiped(cmd: string[], options?: { cwd?: string; env?: Record<s
 export async function spawnCollect(
 	cmd: string[],
 	startTime: number,
-	options?: { cwd?: string; ci?: boolean },
+	options?: { cwd?: string; ci?: boolean; env?: Record<string, string> },
 ): Promise<CollectResult> {
 	try {
 		const proc = Bun.spawn(cmd, {
-			env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), FORCE_COLOR: "1" },
+			env: { ...baseEnv, ...(options?.ci ? { CI: "1" } : {}), FORCE_COLOR: "1", ...options?.env },
 			stdout: "pipe",
 			stderr: "pipe",
 			cwd: options?.cwd,

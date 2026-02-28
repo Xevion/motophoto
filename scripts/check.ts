@@ -4,8 +4,9 @@
  * Usage: bun scripts/check.ts [--fix|-f] [--help|-h]
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { c, elapsed, isStderrTTY, parseFlags } from './lib/fmt';
+import { createLocalConfig } from './lib/octocov';
 import { type CollectResult, assertNotWindowsNative, hasTool, raceInOrder, runPiped, spawnCollect, warnMissingTool } from './lib/proc';
 
 assertNotWindowsNative();
@@ -89,10 +90,19 @@ interface Check {
 	name: string;
 	cmd: string[];
 	cwd?: string;
+	env?: Record<string, string>;
 	hint?: string;
 	warnIfExitCode?: number;
 	warnHint?: string;
 	subsystem: 'frontend' | 'backend';
+}
+
+// Create a patched octocov config (local:// datastores) for the coverage check.
+// Done here so the temp dir lifetime spans the entire parallel check run.
+const octocovConfig = hasTool("octocov") ? createLocalConfig() : null;
+if (octocovConfig) {
+	mkdirSync(".octocov", { recursive: true });
+	process.on("exit", octocovConfig.cleanup);
 }
 
 const checks: Check[] = [
@@ -135,9 +145,12 @@ const checks: Check[] = [
 			// Exits 2 when tests pass but coverage is below threshold (warn-only in check).
 			name: 'backend-test',
 			subsystem: 'backend' as const,
-			cmd: ['bash', '-c', 'go test -race -count=1 -coverprofile=coverage.out ./...; t=$?; [ $t -ne 0 ] && exit $t; go tool go-test-coverage --config=.testcoverage.yml || exit 2'],
+			cmd: octocovConfig
+				? ['bash', '-c', `go test -race -count=1 -coverprofile=coverage.out ./...; t=$?; [ $t -ne 0 ] && exit $t; octocov --config=${octocovConfig.configPath} --report coverage.out; [ $? -ne 0 ] && exit 2 || exit 0`]
+				: ['go', 'test', '-race', '-count=1', './...'],
+			env: octocovConfig?.env,
 			warnIfExitCode: 2,
-			warnHint: 'Coverage below threshold -- CI will reject this commit. Run `just test-cover` for details.',
+			warnHint: 'Coverage below threshold -- CI will reject this commit. Run `just cov` for details.',
 		},
 	] : []),
 	...(hasSqlc ? [{
@@ -153,7 +166,7 @@ const remaining = new Set(checks.map((ch) => ch.name));
 
 const promises = checks.map(async (check) => ({
 	...check,
-	...(await spawnCollect(check.cmd, start, { cwd: check.cwd, ci: true }))
+	...(await spawnCollect(check.cmd, start, { cwd: check.cwd, ci: true, env: check.env }))
 }));
 
 const interval = isStderrTTY

@@ -5,6 +5,7 @@ set positional-arguments := true
 alias c := check
 alias d := dev
 alias t := test
+alias test-cover := cov
 
 default:
     @just --list
@@ -21,12 +22,9 @@ dev *flags:
 test *flags:
     go test -race -count=1 {{flags}} ./...
 
-# Run tests with coverage report and enforce thresholds (.testcoverage.yml)
-test-cover:
-    go test -race -count=1 -coverprofile=coverage.out ./...
-    go tool go-test-coverage --config=.testcoverage.yml
-    go tool cover -html=coverage.out -o coverage.html
-    @echo "Coverage report: coverage.html"
+# Run tests with coverage report and diff against master baseline
+cov:
+    bun scripts/octocov-local.ts
 
 # Run linters
 lint:

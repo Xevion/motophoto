@@ -41,4 +41,9 @@ web/build/
 # Go workspace
 go.work
 go.work.sum
+
+# Coverage baseline cache (octocov)
+.octocov/
+.octocov-cache/
+.octocov-local.yml
 web/.eslintcache

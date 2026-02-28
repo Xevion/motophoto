@@ -16,6 +16,11 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: write
+
     services:
       postgres:
         image: postgres:17-alpine
@@ -57,18 +62,8 @@ jobs:
           CI: "true"
         run: go test -race -count=1 -coverprofile=coverage.out ./...
 
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: go-coverage
-          path: coverage.out
-          retention-days: 14
-
-      - name: Check test coverage
-        uses: vladopajic/go-test-coverage@v2
-        with:
-          config: ./.testcoverage.yml
+      - name: Run octocov
+        uses: k1LoW/octocov-action@v1
 
       - name: Check sqlc generated code
         run: |
