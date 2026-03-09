@@ -2,6 +2,7 @@ import { defineConfig } from '@pandacss/dev';
 import { buttonRecipe } from './src/lib/recipes/button';
 import { badgeRecipe } from './src/lib/recipes/badge';
 import { toggleRecipe } from './src/lib/recipes/toggle';
+import { menuRecipe } from './src/lib/recipes/menu';
 
 export default defineConfig({
 	preflight: true,
@@ -21,6 +22,7 @@ export default defineConfig({
 			},
 			slotRecipes: {
 				toggle: toggleRecipe,
+				menu: menuRecipe,
 			},
 			tokens: {
 				colors: {
@@ -162,6 +164,14 @@ export default defineConfig({
 		a: {
 			color: 'inherit',
 			textDecoration: 'none',
+		},
+		'@keyframes fade-in': {
+			from: { opacity: 0 },
+			to: { opacity: 1 },
+		},
+		'@keyframes fade-out': {
+			from: { opacity: 1 },
+			to: { opacity: 0 },
 		},
 	},
 });

@@ -9,6 +9,40 @@ import { tick } from 'svelte';
 
 const classes = toggle({ variant: 'outline', size: 'md' });
 
+const sunIcon = css({
+	position: 'absolute',
+	w: '4',
+	h: '4',
+	transition: 'all',
+	transitionDuration: '200ms',
+	rotate: '0deg',
+	scale: '1',
+	_dark: { rotate: '-90deg', scale: '0' },
+});
+
+const moonIcon = css({
+	position: 'absolute',
+	w: '4',
+	h: '4',
+	transition: 'all',
+	transitionDuration: '200ms',
+	rotate: '90deg',
+	scale: '0',
+	_dark: { rotate: '0deg', scale: '1' },
+});
+
+const srOnly = css({
+	position: 'absolute',
+	width: '1px',
+	height: '1px',
+	padding: '0',
+	margin: '-1px',
+	overflow: 'hidden',
+	clip: 'rect(0,0,0,0)',
+	whiteSpace: 'nowrap',
+	borderWidth: '0',
+});
+
 /**
  * Theme toggle with View Transitions API circular reveal animation.
  * The clip-path circle expands from the click point to cover the viewport.
@@ -61,39 +95,7 @@ function handleToggle(event: MouseEvent) {
   onclick={handleToggle}
   aria-label="Toggle theme"
 >
-  <Sun
-    class={css({
-      position: 'absolute',
-      w: '4',
-      h: '4',
-      transition: 'all',
-      transitionDuration: '200ms',
-      rotate: '0deg',
-      scale: '1',
-      _dark: { rotate: '-90deg', scale: '0' },
-    })}
-  />
-  <Moon
-    class={css({
-      position: 'absolute',
-      w: '4',
-      h: '4',
-      transition: 'all',
-      transitionDuration: '200ms',
-      rotate: '90deg',
-      scale: '0',
-      _dark: { rotate: '0deg', scale: '1' },
-    })}
-  />
-  <span class={css({
-    position: 'absolute',
-    width: '1px',
-    height: '1px',
-    padding: '0',
-    margin: '-1px',
-    overflow: 'hidden',
-    clip: 'rect(0,0,0,0)',
-    whiteSpace: 'nowrap',
-    borderWidth: '0',
-  })}>Toggle theme</span>
+  <Sun class={sunIcon} />
+  <Moon class={moonIcon} />
+  <span class={srOnly}>Toggle theme</span>
 </Toggle.Root>
