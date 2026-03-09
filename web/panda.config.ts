@@ -134,10 +134,16 @@ export default defineConfig({
 					danger: {
 						DEFAULT: { value: { base: 'oklch(0.577 0.245 27.325)', _dark: 'oklch(0.704 0.191 22.216)' } },
 						fg: { value: { base: '{colors.neutral.0}', _dark: '{colors.neutral.0}' } },
+						subtle: { value: { base: 'oklch(0.97 0.02 27)', _dark: 'oklch(0.25 0.04 27)' } },
+						subtleFg: { value: { base: 'oklch(0.55 0.2 27)', _dark: 'oklch(0.75 0.15 27)' } },
+						border: { value: { base: 'oklch(0.85 0.08 27)', _dark: 'oklch(0.4 0.08 27)' } },
 					},
 					success: {
 						DEFAULT: { value: { base: 'oklch(0.166 0.044 156.743)', _dark: 'oklch(0.266 0.065 156.743)' } },
 						fg: { value: { base: 'oklch(0.696 0.17 162.48)', _dark: 'oklch(0.696 0.17 162.48)' } },
+						subtle: { value: { base: 'oklch(0.97 0.02 157)', _dark: 'oklch(0.25 0.04 157)' } },
+						subtleFg: { value: { base: 'oklch(0.45 0.15 157)', _dark: 'oklch(0.70 0.15 157)' } },
+						border: { value: { base: 'oklch(0.85 0.08 157)', _dark: 'oklch(0.4 0.06 157)' } },
 					},
 				},
 			},
@@ -172,6 +178,10 @@ export default defineConfig({
 		'@keyframes fade-out': {
 			from: { opacity: 1 },
 			to: { opacity: 0 },
+		},
+		'@keyframes slide-fade-in': {
+			from: { opacity: 0, transform: 'translateY(-8px)' },
+			to: { opacity: 1, transform: 'translateY(0)' },
 		},
 	},
 });
