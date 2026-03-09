@@ -85,6 +85,22 @@ const skeletonPhoto = css({
 	borderRadius: 'lg',
 	animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 });
+
+const notFound = css({
+	textAlign: 'center',
+	py: '20',
+	color: 'fg.muted',
+});
+
+const notFoundTitle = css({
+	fontSize: '2xl',
+	fontWeight: 'semibold',
+	mb: '2',
+});
+
+const notFoundActions = css({
+	mt: '6',
+});
 </script>
 
 <svelte:head>
@@ -142,10 +158,10 @@ const skeletonPhoto = css({
     </div>
   </div>
 {:else}
-  <div class={css({ textAlign: 'center', py: '20', color: 'fg.muted' })}>
-    <p class={css({ fontSize: '2xl', fontWeight: 'semibold', mb: '2' })}>Event not found</p>
+  <div class={notFound}>
+    <p class={notFoundTitle}>Event not found</p>
     <p>That event doesn't exist or may have been removed.</p>
-    <div class={css({ mt: '6' })}>
+    <div class={notFoundActions}>
       <Button href={resolve("/")}>
         <ArrowLeft />
         Back to events

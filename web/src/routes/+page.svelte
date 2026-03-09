@@ -2,9 +2,41 @@
 import { resolve } from '$app/paths';
 import Badge from '$lib/components/ui/badge.svelte';
 import { css } from 'styled-system/css';
+import UiSelect from '$lib/components/ui/select.svelte';
+import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
 import type { PageData } from './$types';
+import type { EventResponse } from '$lib/types.gen';
 
 const { data }: { data: PageData } = $props();
+
+type SortKey = 'date-desc' | 'date-asc' | 'name-asc' | 'photos-desc';
+
+const sortItems = [
+	{ value: 'date-desc', label: 'Newest first' },
+	{ value: 'date-asc', label: 'Oldest first' },
+	{ value: 'name-asc', label: 'Name A\u2013Z' },
+	{ value: 'photos-desc', label: 'Most photos' },
+];
+
+let sortValue = $state<string[]>(['date-desc']);
+let sortKey = $derived((sortValue[0] as SortKey) ?? 'date-desc');
+
+function compareEvents(a: EventResponse, b: EventResponse): number {
+	switch (sortKey) {
+		case 'date-desc':
+			return (b.date ?? '').localeCompare(a.date ?? '');
+		case 'date-asc':
+			return (a.date ?? '').localeCompare(b.date ?? '');
+		case 'name-asc':
+			return a.name.localeCompare(b.name);
+		case 'photos-desc':
+			return b.photo_count - a.photo_count;
+		default:
+			return 0;
+	}
+}
+
+const sortedEvents = $derived([...data.events].sort(compareEvents));
 
 const page = css({
 	display: 'flex',
@@ -35,6 +67,13 @@ const heroSub = css({
 });
 
 const sectionHeader = css({
+	display: 'flex',
+	alignItems: 'center',
+	justifyContent: 'space-between',
+	gap: '3',
+});
+
+const sectionLeft = css({
 	display: 'flex',
 	alignItems: 'baseline',
 	gap: '3',
@@ -130,6 +169,35 @@ const tagRow = css({
 	flexWrap: 'wrap',
 	gap: '1.5',
 });
+
+const eventListWrapper = css({
+	mt: '4',
+});
+
+const sortTrigger = css({
+	display: 'inline-flex',
+	alignItems: 'center',
+	gap: '1.5',
+	borderRadius: 'md',
+	fontSize: 'sm',
+	fontWeight: 'medium',
+	cursor: 'pointer',
+	h: '8',
+	px: '3',
+	bg: 'transparent',
+	color: 'fg.muted',
+	borderWidth: '1px',
+	borderColor: 'border',
+	transition: 'all 150ms',
+	_hover: { bg: 'bg.muted', color: 'fg' },
+	_focusVisible: {
+		outlineWidth: '2px',
+		outlineColor: 'primary',
+		outlineOffset: '2px',
+		outlineStyle: 'solid',
+	},
+	'& svg': { pointerEvents: 'none', flexShrink: 0, width: '1em', height: '1em' },
+});
 </script>
 
 <svelte:head>
@@ -144,13 +212,27 @@ const tagRow = css({
 
   <section>
     <div class={sectionHeader}>
-      <h2 class={sectionTitle}>Upcoming Events</h2>
-      <span class={sectionCount}>{data.events.length} events</span>
+      <div class={sectionLeft}>
+        <h2 class={sectionTitle}>Upcoming Events</h2>
+        <span class={sectionCount}>{data.events.length} events</span>
+      </div>
+
+      <UiSelect
+        items={sortItems}
+        value={sortValue}
+        onValueChange={(v: string[]) => (sortValue = v)}
+        placeholder="Sort"
+        triggerClass={sortTrigger}
+      >
+        {#snippet icon()}
+          <ArrowUpDown />
+        {/snippet}
+      </UiSelect>
     </div>
 
-    <div class={css({ mt: '4' })}>
+    <div class={eventListWrapper}>
       <div class={grid}>
-        {#each data.events as event (event.id)}
+        {#each sortedEvents as event (event.id)}
           <a href={resolve('/events/[id]', { id: String(event.id) })} class={cardLink}>
             <div class={card}>
               <div>

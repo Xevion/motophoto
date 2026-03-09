@@ -163,6 +163,37 @@ Recipes in `src/lib/recipes/` define multi-variant component styles (e.g., `butt
 
 Run `panda codegen` (via `bun run prepare`) to regenerate `styled-system/` after changing `panda.config.ts` or recipes.
 
+#### Patterns
+
+**All `css()` calls are named constants in `<script>`, never inline in templates.**
+
+```svelte
+<!-- good -->
+<script lang="ts">
+    const wrapper = css({ display: 'flex', gap: '4' });
+</script>
+<div class={wrapper}>...</div>
+
+<!-- avoid -->
+<div class={css({ display: 'flex', gap: '4' })}>...</div>
+```
+
+**Use `cx()` for conditional class merging, not string interpolation.**
+
+```svelte
+<script lang="ts">
+    import { css, cx } from 'styled-system/css';
+    const input = css({ borderColor: 'border' });
+    const inputError = css({ borderColor: 'danger' });
+</script>
+
+<!-- good -->
+<div class={cx(input, hasError && inputError)}>...</div>
+
+<!-- avoid -->
+<div class="{input} {hasError ? inputError : ''}">...</div>
+```
+
 ### Ark UI
 
 [Ark UI](https://ark-ui.com) provides unstyled, accessible headless components (dialogs, menus, popovers, etc.). Pair them with PandaCSS recipes for styled, accessible primitives:
