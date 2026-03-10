@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import { c, elapsed, isStderrTTY, parseFlags } from './lib/fmt';
-import { createLocalConfig } from './lib/octocov';
+import { createLocalConfig, testablePackages } from './lib/octocov';
 import { type CollectResult, assertNotWindowsNative, hasTool, raceInOrder, runPiped, spawnCollect, warnMissingTool } from './lib/proc';
 
 assertNotWindowsNative();
@@ -105,6 +105,9 @@ if (octocovConfig) {
 	process.on("exit", octocovConfig.cleanup);
 }
 
+// Compute once before parallel checks spawn -- omits testless packages from go test output.
+const testPkgs = hasGo ? testablePackages() : [];
+
 const checks: Check[] = [
 	// Frontend checks
 	{
@@ -146,8 +149,8 @@ const checks: Check[] = [
 			name: 'backend-test',
 			subsystem: 'backend' as const,
 			cmd: octocovConfig
-				? ['bash', '-c', `go test -race -count=1 -coverprofile=coverage.out ./...; t=$?; [ $t -ne 0 ] && exit $t; octocov --config=${octocovConfig.configPath} --report coverage.out; [ $? -ne 0 ] && exit 2 || exit 0`]
-				: ['go', 'test', '-race', '-count=1', './...'],
+				? ['bash', '-c', `go test -race -count=1 -coverprofile=coverage.out ${testPkgs.join(' ')}; t=$?; [ $t -ne 0 ] && exit $t; octocov --config=${octocovConfig.configPath} --report coverage.out; [ $? -ne 0 ] && exit 2 || exit 0`]
+				: ['go', 'test', '-race', '-count=1', ...testPkgs],
 			env: octocovConfig?.env,
 			warnIfExitCode: 2,
 			warnHint: 'Coverage below threshold -- CI will reject this commit. Run `just cov` for details.',

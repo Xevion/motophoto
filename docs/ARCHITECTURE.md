@@ -58,6 +58,7 @@ motophoto/
 +-- internal/
 |   +-- server/
 |   |   +-- server.go                # Chi router setup, middleware, route definitions
+|   |   +-- auth.go                  # Register/login/logout handlers
 |   |   +-- events.go                # Event handler methods (list, get, create, update, delete)
 |   |   +-- galleries.go             # Gallery handler methods
 |   |   +-- pagination.go            # Cursor pagination helpers (encode/decode cursor)
@@ -74,8 +75,12 @@ motophoto/
 |   |   +-- db/                      # sqlc generated Go code (DO NOT EDIT)
 |   +-- session/
 |   |   +-- session.go               # scs session manager backed by PostgreSQL
+|   +-- shutdown/
+|   |   +-- tracker.go               # Graceful shutdown coordinator (in-flight request tracking)
+|   +-- logging/
+|   |   +-- logging.go               # Shared slog formatters (durations, large integers, percentages)
 |   +-- middleware/
-|       +-- middleware.go            # RequestID (Railway-aware), RequestLogger, LoggerFromContext
+|       +-- middleware.go            # RequestID (Railway-aware), RequestLogger, LoggerFromContext, Auth
 +-- web/                             # SvelteKit frontend (see SVELTE.md)
 |   +-- src/
 |   |   +-- routes/                  # File-based routing
@@ -118,12 +123,13 @@ motophoto/
 |----------|---------|-------------|
 | `DATABASE_URL` | (see `.env.example`) | PostgreSQL connection string |
 | `PORT` | `3001` | Go server listen port |
+| `ENVIRONMENT` | (empty) | Set to `production` for secure session cookies |
 | `LOG_JSON` | `false` | Set to `true` to emit JSON logs (production default) |
-| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn`, `error` |
+| `LOG_LEVEL` | `info` | Log verbosity: `trace`, `debug`, `info`, `warn`, `error` |
 
 ## Database
 
-PostgreSQL 17 runs locally via docker-compose on port **57512** (mapped from container's 5432).
+PostgreSQL 17 runs locally via docker-compose on port **57512** (mapped from container's 5432). The compose file also defines an `app` service for local production-like testing (port 8080).
 
 Connection string: `postgres://motophoto:motophoto@localhost:57512/motophoto`
 

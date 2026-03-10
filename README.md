@@ -61,13 +61,16 @@ All commands are defined in `Justfile`:
 | `just dev -f` | Frontend only |
 | `just dev -b` | Backend only |
 | `just build` | Full production build (frontend + backend) |
-| `just check` | Parallel: `go vet` + `go build` + `go test` + `svelte-check` + `eslint` |
+| `just check` | Parallel checks via `scripts/check.ts` (lint, format, build, test, sqlc diff, tygo diff) |
 | `just check --fix` | Auto-format then verify |
-| `just lint` | `eslint` + `go vet` |
-| `just test` | Run Go tests |
-| `just format` | `gofmt` + `eslint --fix` |
-| `just generate` | Run sqlc code generation |
+| `just lint` | `golangci-lint` + frontend ESLint |
+| `just test` | Run Go tests + Vitest |
+| `just format` | `goimports` + Biome format + ESLint fix |
+| `just generate` | Run sqlc + tygo code generation |
+| `just cov` | Coverage report (octocov) |
 | `just docker-build` | Build Docker image |
+| `just docker-run` | Run Docker image locally |
+| `just clean` | Remove build artifacts |
 | `just db` | Start local Postgres |
 | `just db reset` | Drop and recreate database |
 

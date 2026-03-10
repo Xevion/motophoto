@@ -1,5 +1,6 @@
 # MotoPhoto - Event Photography Marketplace
 
+set dotenv-load := true
 set positional-arguments := true
 
 alias c := check
@@ -21,6 +22,7 @@ dev *flags:
 # Run all tests (use -v for verbose, -run=<pattern> to filter)
 test *flags:
     go test -race -count=1 {{flags}} ./...
+    cd web && bunx vitest run
 
 # Run tests with coverage report and diff against master baseline
 cov:
@@ -42,13 +44,10 @@ build:
     bun run --cwd web build
     go build -o motophoto .
 
-# Generate TypeScript bindings from Go types
-bindings:
-    tygo generate
-
-# Run sqlc code generation
+# Run sqlc and tygo code generation
 generate:
     sqlc generate
+    tygo generate
 
 # Build Docker image
 docker-build *flags:

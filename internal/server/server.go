@@ -19,8 +19,12 @@ import (
 	"github.com/Xevion/motophoto/internal/database/db"
 	"github.com/Xevion/motophoto/internal/middleware"
 	"github.com/Xevion/motophoto/internal/service"
+	"github.com/Xevion/motophoto/internal/shutdown"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Options configures optional Server features that vary between dev and production.
+type Options struct{}
 
 type Server struct {
 	router    *chi.Mux
@@ -30,10 +34,11 @@ type Server struct {
 	galleries *service.GalleryService
 	sessions  *scs.SessionManager
 	auth      *middleware.Auth
+	shutdown  *shutdown.Tracker
 	port      string
 }
 
-func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
+func New(pool *pgxpool.Pool, sessions *scs.SessionManager, tracker *shutdown.Tracker, opts Options) (*Server, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
@@ -49,6 +54,7 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager) (*Server, error) {
 		galleries: service.NewGalleryService(q),
 		sessions:  sessions,
 		auth:      middleware.NewAuth(sessions, q),
+		shutdown:  tracker,
 	}
 
 	s.setupMiddleware()
