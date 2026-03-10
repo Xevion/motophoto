@@ -49,7 +49,7 @@ func loginAs(t *testing.T, handler http.Handler, pool *pgxpool.Pool, role string
 	})
 
 	body := fmt.Sprintf(`{"email":%q,"password":%q}`, email, password)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)

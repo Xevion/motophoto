@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,7 +32,7 @@ func TestRealIP_TrueClientIPTakesPriority(t *testing.T) {
 	// Simulate: Client (203.0.113.50) -> Cloudflare -> Fastly -> SvelteKit -> Go
 	// Cloudflare sets True-Client-IP to the actual client.
 	// Railway sets X-Real-IP to Cloudflare's edge IP (not the client).
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("True-Client-IP", "203.0.113.50")
 	req.Header.Set("X-Real-IP", "162.158.0.1")                               // Cloudflare edge IP
 	req.Header.Set("X-Forwarded-For", "203.0.113.50, 162.158.0.1, 10.0.0.1") // full chain
@@ -46,7 +47,7 @@ func TestRealIP_XRealIPUsedWhenNoTrueClientIP(t *testing.T) {
 	t.Parallel()
 	handler := realIPStack()
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("X-Real-IP", "198.51.100.10")
 
 	rr := httptest.NewRecorder()
@@ -59,7 +60,7 @@ func TestRealIP_XForwardedForFirstEntry(t *testing.T) {
 	t.Parallel()
 	handler := realIPStack()
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("X-Forwarded-For", "203.0.113.50, 10.0.0.1")
 
 	rr := httptest.NewRecorder()
@@ -74,7 +75,7 @@ func TestRealIP_FallsBackToRemoteAddr(t *testing.T) {
 
 	// No IP headers at all -- should keep the default RemoteAddr from httptest
 	// (which is "192.0.2.1:1234").
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -89,7 +90,7 @@ func TestRealIP_CloudflareFastlyChain(t *testing.T) {
 	// This is the exact scenario that was broken: Railway/Fastly sets X-Real-IP
 	// to Cloudflare's edge, NOT the client. Without True-Client-IP forwarded,
 	// chi picks up the wrong IP.
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	req.Header.Set("X-Real-IP", "162.158.0.1") // Cloudflare edge -- WRONG
 	req.Header.Set("X-Forwarded-For", "203.0.113.50, 162.158.0.1")
 

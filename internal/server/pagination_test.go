@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http/httptest"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestParsePaginationParams_DefaultLimit(t *testing.T) {
-	r := httptest.NewRequest("GET", "/", nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/", nil)
 	sortOrder, id, limit := parsePaginationParams(r)
 	assert.Nil(t, sortOrder)
 	assert.Nil(t, id)
@@ -18,26 +19,26 @@ func TestParsePaginationParams_DefaultLimit(t *testing.T) {
 }
 
 func TestParsePaginationParams_ValidLimit(t *testing.T) {
-	r := httptest.NewRequest("GET", "/?limit=50", nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=50", nil)
 	_, _, limit := parsePaginationParams(r)
 	assert.Equal(t, int32(50), limit)
 }
 
 func TestParsePaginationParams_LimitExceedsMax(t *testing.T) {
-	r := httptest.NewRequest("GET", "/?limit=9999", nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=9999", nil)
 	_, _, limit := parsePaginationParams(r)
 	assert.Equal(t, int32(defaultLimit), limit)
 }
 
 func TestParsePaginationParams_InvalidLimitString(t *testing.T) {
-	r := httptest.NewRequest("GET", "/?limit=abc", nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=abc", nil)
 	_, _, limit := parsePaginationParams(r)
 	assert.Equal(t, int32(defaultLimit), limit)
 }
 
 func TestParsePaginationParams_ValidCursor(t *testing.T) {
 	cursor := base64.RawURLEncoding.EncodeToString([]byte("42:some-uuid"))
-	r := httptest.NewRequest("GET", "/?cursor="+cursor, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor="+cursor, nil)
 	sortOrder, id, limit := parsePaginationParams(r)
 	assert.NotNil(t, sortOrder)
 	assert.Equal(t, int32(42), *sortOrder)
@@ -47,7 +48,7 @@ func TestParsePaginationParams_ValidCursor(t *testing.T) {
 }
 
 func TestParsePaginationParams_InvalidCursorEncoding(t *testing.T) {
-	r := httptest.NewRequest("GET", "/?cursor=not-valid-base64!!!", nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor=not-valid-base64!!!", nil)
 	sortOrder, id, limit := parsePaginationParams(r)
 	assert.Nil(t, sortOrder)
 	assert.Nil(t, id)
@@ -56,7 +57,7 @@ func TestParsePaginationParams_InvalidCursorEncoding(t *testing.T) {
 
 func TestParsePaginationParams_CursorMissingColon(t *testing.T) {
 	cursor := base64.RawURLEncoding.EncodeToString([]byte("nocolon"))
-	r := httptest.NewRequest("GET", "/?cursor="+cursor, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor="+cursor, nil)
 	sortOrder, id, _ := parsePaginationParams(r)
 	assert.Nil(t, sortOrder)
 	assert.Nil(t, id)
@@ -64,7 +65,7 @@ func TestParsePaginationParams_CursorMissingColon(t *testing.T) {
 
 func TestParsePaginationParams_CursorInvalidSortOrder(t *testing.T) {
 	cursor := base64.RawURLEncoding.EncodeToString([]byte("notanint:some-uuid"))
-	r := httptest.NewRequest("GET", "/?cursor="+cursor, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor="+cursor, nil)
 	sortOrder, id, _ := parsePaginationParams(r)
 	assert.Nil(t, sortOrder)
 	assert.Nil(t, id)
@@ -83,7 +84,7 @@ func TestEncodeCursorRoundtrip(t *testing.T) {
 	sortOrder := int32(99)
 	cursor := encodeCursor(sortOrder, id)
 
-	r := httptest.NewRequest("GET", "/?cursor="+cursor, nil)
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor="+cursor, nil)
 	gotSortOrder, gotID, _ := parsePaginationParams(r)
 
 	assert.NotNil(t, gotSortOrder)
