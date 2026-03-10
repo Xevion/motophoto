@@ -33,7 +33,7 @@ func makeSession(t *testing.T, sessions *scs.SessionManager, userID string) *htt
 	handler := sessions.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessions.Put(r.Context(), "user_id", userID)
 	}))
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 
@@ -48,9 +48,10 @@ func makeSession(t *testing.T, sessions *scs.SessionManager, userID string) *htt
 
 // doAuthRequest runs a request through LoadAndSave -> handler with an optional
 // cookie and returns the recorder.
-func doAuthRequest(sessions *scs.SessionManager, handler http.Handler, cookie *http.Cookie) *httptest.ResponseRecorder {
+func doAuthRequest(t *testing.T, sessions *scs.SessionManager, handler http.Handler, cookie *http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
 	chain := sessions.LoadAndSave(handler)
-	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/protected", nil)
 	if cookie != nil {
 		req.AddCookie(cookie)
 	}
@@ -68,7 +69,7 @@ func TestRequireAuth_NoSession(t *testing.T) {
 	t.Parallel()
 	auth, sessions, _ := newTestAuth(t)
 
-	rr := doAuthRequest(sessions, auth.RequireAuth(okHandler), nil)
+	rr := doAuthRequest(t, sessions, auth.RequireAuth(okHandler), nil)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
@@ -79,7 +80,7 @@ func TestRequireAuth_UnknownUser(t *testing.T) {
 
 	// Session exists but the user_id references a non-existent row.
 	cookie := makeSession(t, sessions, "does-not-exist")
-	rr := doAuthRequest(sessions, auth.RequireAuth(okHandler), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireAuth(okHandler), cookie)
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
@@ -91,7 +92,7 @@ func TestRequireAuth_BannedUser(t *testing.T) {
 
 	userID := dbfactory.User(ctx, t, pool, &dbfactory.UserOpts{Banned: true})
 	cookie := makeSession(t, sessions, userID)
-	rr := doAuthRequest(sessions, auth.RequireAuth(okHandler), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireAuth(okHandler), cookie)
 
 	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
@@ -103,7 +104,7 @@ func TestRequireAuth_ValidUser(t *testing.T) {
 
 	userID := dbfactory.User(ctx, t, pool, nil)
 	cookie := makeSession(t, sessions, userID)
-	rr := doAuthRequest(sessions, auth.RequireAuth(okHandler), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireAuth(okHandler), cookie)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
@@ -123,7 +124,7 @@ func TestRequireAuth_AttachesUserToContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	rr := doAuthRequest(sessions, auth.RequireAuth(capture), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireAuth(capture), cookie)
 
 	require.Equal(t, http.StatusOK, rr.Code)
 	require.True(t, gotOK)
@@ -139,7 +140,7 @@ func TestRequireRole_CorrectRole(t *testing.T) {
 	userID := dbfactory.User(ctx, t, pool, &dbfactory.UserOpts{Role: &role})
 	cookie := makeSession(t, sessions, userID)
 
-	rr := doAuthRequest(sessions, auth.RequireRole(db.UserRolePhotographer)(okHandler), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireRole(db.UserRolePhotographer)(okHandler), cookie)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
@@ -153,7 +154,7 @@ func TestRequireRole_WrongRole(t *testing.T) {
 	userID := dbfactory.User(ctx, t, pool, &dbfactory.UserOpts{Role: &role})
 	cookie := makeSession(t, sessions, userID)
 
-	rr := doAuthRequest(sessions, auth.RequireRole(db.UserRolePhotographer)(okHandler), cookie)
+	rr := doAuthRequest(t, sessions, auth.RequireRole(db.UserRolePhotographer)(okHandler), cookie)
 
 	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
