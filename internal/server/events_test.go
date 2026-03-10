@@ -27,10 +27,10 @@ func doRequestWithCookies(t *testing.T, handler http.Handler, method, path strin
 	t.Helper()
 	var req *http.Request
 	if body != "" {
-		req = httptest.NewRequest(method, path, strings.NewReader(body))
+		req = httptest.NewRequestWithContext(t.Context(), method, path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 	} else {
-		req = httptest.NewRequest(method, path, nil)
+		req = httptest.NewRequestWithContext(t.Context(), method, path, nil)
 	}
 	for _, c := range cookies {
 		req.AddCookie(c)
