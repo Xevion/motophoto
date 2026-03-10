@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -161,7 +162,7 @@ func TestRequireRole_WrongRole(t *testing.T) {
 
 func TestUserFromContext_Empty(t *testing.T) {
 	t.Parallel()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
 	user, ok := middleware.UserFromContext(req.Context())
 	assert.False(t, ok)
 	assert.Nil(t, user)
