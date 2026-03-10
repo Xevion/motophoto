@@ -25,14 +25,20 @@ web/
 |   |   |   +-- theme.svelte.ts      # Dark/light theme store ($state rune)
 |   |   +-- components/
 |   |   |   +-- theme-toggle.svelte  # Dark/light mode toggle
-|   |   |   +-- ui/                  # Reusable UI primitives (button, badge, ...)
+|   |   |   +-- ui/                  # Reusable UI primitives (button, badge, select, form-alert)
 |   |   |       +-- button.svelte
 |   |   |       +-- badge.svelte
+|   |   |       +-- select.svelte
+|   |   |       +-- form-alert.svelte
 |   |   |       +-- index.ts
+|   |   +-- schemas/                 # Zod validation schemas (auth, etc.)
+|   |   +-- server/                  # Server-side helpers (auth form actions, error parsing)
+|   |   +-- styles/                  # PandaCSS style constants (auth forms, etc.)
 |   |   +-- recipes/                 # PandaCSS recipes for styled components
 |   |       +-- button.ts
 |   |       +-- badge.ts
 |   |       +-- toggle.ts
+|   |       +-- menu.ts             # Ark UI menu slot recipe
 |   +-- app.html                     # HTML shell
 +-- static/                          # Static assets (favicon, etc.)
 +-- styled-system/                   # PandaCSS generated output (DO NOT EDIT)
@@ -55,6 +61,8 @@ SvelteKit uses file-based routing. Each route is a directory under `src/routes/`
 |-------|-----|-------------|
 | `src/routes/` | `/` | Home page -- lists all events |
 | `src/routes/events/[id]/` | `/events/:id` | Event detail page |
+| `src/routes/login/` | `/login` | Login form (superforms + zod) |
+| `src/routes/register/` | `/register` | Registration form (superforms + zod) |
 
 ### Adding a New Route
 

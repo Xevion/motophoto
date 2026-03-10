@@ -29,12 +29,17 @@ The server uses Chi (`go-chi/chi/v5`) with this middleware stack (order matters)
 
 ```
 GET    /api/health                              -> {"status": "ok"}
+POST   /api/v1/auth/register                    -> create account
+POST   /api/v1/auth/login                       -> log in (sets session cookie)
+POST   /api/v1/auth/logout                      -> log out (clears session)
 GET    /api/v1/events                           -> list published events (cursor-paginated)
-POST   /api/v1/events                           -> create event
 GET    /api/v1/events/{id}                      -> get event by nanoid or slug (includes galleries)
+GET    /api/v1/events/{eventId}/galleries       -> list galleries for event
+
+# Photographer-only (RequireRole):
+POST   /api/v1/events                           -> create event
 PATCH  /api/v1/events/{id}                      -> partial update event
 DELETE /api/v1/events/{id}                      -> delete event
-GET    /api/v1/events/{eventId}/galleries       -> list galleries for event
 POST   /api/v1/events/{eventId}/galleries       -> create gallery
 PATCH  /api/v1/events/{eventId}/galleries/{id}  -> partial update gallery
 DELETE /api/v1/events/{eventId}/galleries/{id}  -> delete gallery
@@ -125,6 +130,8 @@ Each service is instantiated once in `server.New()` and stored on the `Server` s
 ```go
 s.events    *service.EventService
 s.galleries *service.GalleryService
+s.auth      *middleware.Auth       // auth middleware (RequireAuth, RequireRole)
+s.shutdown  *shutdown.Tracker      // graceful shutdown coordinator
 ```
 
 ### Service Types
@@ -237,15 +244,19 @@ if err != nil {
 
 ## Key Libraries
 
-Beyond Chi, pgx, and scs, the following packages are available for use:
+Beyond Chi, pgx, and scs, the following packages are used:
 
 | Package | Purpose |
 |---------|---------|
 | `go-playground/validator/v10` | Struct field validation via struct tags -- use for validating request bodies |
-| `aws-sdk-go-v2` + `service/s3` | S3-compatible object storage (AWS S3, Cloudflare R2) for photo uploads |
-| `disintegration/imaging` | Image resizing, cropping, and format conversion for thumbnail/watermark generation |
-| `gabriel-vasile/mimetype` | MIME type detection from file content (not file extension) |
-| `google/uuid` | UUID generation for photo and entity IDs |
+| `go-chi/httprate` | Rate limiting (100 req/min per real IP) |
+| `go-chi/cors` | CORS middleware |
+| `matoous/go-nanoid/v2` | Nanoid generation for entity IDs |
+| `oklog/ulid/v2` | ULID generation for request IDs |
+| `lmittmann/tint` | Colored slog output in development |
+| `samber/slog-formatter` | slog formatting middleware (durations, large integers, percentages) |
+| `golang.org/x/crypto` | Password hashing (bcrypt) |
+| `dustin/go-humanize` | Comma-formatted numbers in logs |
 | `stretchr/testify` | Assertion helpers for Go tests |
 
 ### Request Validation
@@ -282,7 +293,27 @@ func handleCreatePhoto(w http.ResponseWriter, r *http.Request) {
 just test             # Run all Go tests
 go test ./...         # Equivalent
 go test ./internal/server/...  # Test specific package
+just cov              # Coverage report
 ```
+
+### Conventions
+
+- **Assertions**: use `testify/require` for preconditions (fatal on failure), `testify/assert` for checks. Use `go-cmp` (`cmpopts.IgnoreFields`, `cmpopts.EquateApproxTime`) for complex struct comparison.
+- **Table-driven tests**: preferred for functions with multiple input/output combinations. Use `t.Run` subtests with `t.Parallel()` at both parent and subtest level.
+- **Property-based tests**: use `pgregory.net/rapid` for roundtrip and invariant testing on pure functions (encoding, parsing, normalization).
+- **White-box vs black-box**: use `package foo` (white-box) for testing unexported helpers. Use `package foo_test` (black-box) for testing the public API surface.
+- **Test helpers**: put shared helpers in `testhelpers_test.go` within the package, or in `internal/testutil/` for cross-package use.
+- **No mocks for DB**: test against real Postgres via pgtestdb. Mock only external HTTP services using `httptest.NewServer`.
+
+### Test Libraries
+
+| Package | Purpose |
+|---------|---------|
+| `stretchr/testify` | `assert` (non-fatal) and `require` (fatal) assertions |
+| `google/go-cmp` | Struct diffing with field ignoring, approximate time |
+| `pgregory.net/rapid` | Property-based testing with shrinking |
+| `peterldowns/pgtestdb` | Per-test isolated Postgres via template cloning |
+| `net/http/httptest` | HTTP handler testing without a real server |
 
 ### Integration Tests with pgtestdb
 

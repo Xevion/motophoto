@@ -5,15 +5,20 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/Xevion/motophoto/internal/database/db"
 )
+
+// LevelTrace is below Debug for very noisy, rarely-needed logs like
+// proxied dev asset requests.
+const LevelTrace = slog.LevelDebug - 4
 
 type contextKey string
 
@@ -108,16 +113,38 @@ func LoggerFromContext(ctx context.Context) *slog.Logger {
 // inspect it after the fact without consuming the response body.
 type wrappedWriter struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (w *wrappedWriter) WriteHeader(status int) {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
 }
 
+// requestLogLevel returns the appropriate log level for a successful request
+// based on its path. API requests are INFO, SSR-proxied page loads are DEBUG,
+// and dev asset requests (Vite HMR, node_modules, source files) are TRACE.
+func requestLogLevel(path string) slog.Level {
+	if strings.HasPrefix(path, "/api/") {
+		return slog.LevelInfo
+	}
+	if strings.HasPrefix(path, "/src/") ||
+		strings.HasPrefix(path, "/node_modules/") ||
+		strings.HasPrefix(path, "/@") ||
+		strings.HasPrefix(path, "/.svelte-kit/") ||
+		strings.HasPrefix(path, "/styled-system/") {
+		return LevelTrace
+	}
+	return slog.LevelDebug
+}
+
 // RequestID reads Railway's X-Railway-Request-Id header, falls back to the
-// standard X-Request-Id, and generates a UUID if neither is present. The
+// standard X-Request-Id, and generates a ULID if neither is present. The
 // resolved ID is stored in the request context using chi's RequestIDKey so
 // that chimiddleware.GetReqID continues to work throughout the handler chain.
 //
@@ -131,7 +158,7 @@ func RequestID(next http.Handler) http.Handler {
 			id = r.Header.Get("X-Request-Id")
 		}
 		if id == "" {
-			id = uuid.New().String()
+			id = ulid.Make().String()
 		}
 
 		ctx := context.WithValue(r.Context(), chimiddleware.RequestIDKey, id)
@@ -141,10 +168,11 @@ func RequestID(next http.Handler) http.Handler {
 }
 
 // RequestLogger is a chi-compatible middleware that logs every response using
-// the default slog logger with structured fields. Successful responses are
-// logged at Debug, client errors (4xx) at Warn, and server errors (5xx) at
-// Error. A request-scoped logger carrying the request_id is stored in context
-// so handlers can emit correlated log lines without repeating the field.
+// the default slog logger with structured fields. API requests log at Info,
+// dev asset requests at Trace, and SSR page renders at Debug. Client errors
+// (4xx) log at Warn and server errors (5xx) at Error. A request-scoped logger
+// carrying the request_id is stored in context so handlers can emit correlated
+// log lines without repeating the field.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -160,18 +188,20 @@ func RequestLogger(next http.Handler) http.Handler {
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", ww.status,
-			"duration_ms", time.Since(start).Milliseconds(),
-			"request_id", reqID,
+			"duration", time.Since(start),
 			"remote_addr", r.RemoteAddr,
 		}
 
 		switch {
+		case r.Context().Err() != nil:
+			logger.Debug("client disconnected", attrs...)
 		case ww.status >= 500:
 			logger.Error("request error", attrs...)
 		case ww.status >= 400:
 			logger.Warn("request error", attrs...)
 		default:
-			logger.Debug("request", attrs...)
+			level := requestLogLevel(r.URL.Path)
+			logger.Log(r.Context(), level, "request", attrs...)
 		}
 	})
 }

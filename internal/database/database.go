@@ -3,10 +3,25 @@ package database
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Host returns the host portion of DATABASE_URL for logging.
+// Returns "unknown" if the URL is unset or unparseable.
+func Host() string {
+	raw := os.Getenv("DATABASE_URL")
+	if raw == "" {
+		return "unknown"
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "unknown"
+	}
+	return u.Host
+}
 
 // New creates a new database connection pool.
 func New(ctx context.Context) (*pgxpool.Pool, error) {

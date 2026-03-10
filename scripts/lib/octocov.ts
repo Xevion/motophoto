@@ -9,8 +9,23 @@
 import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { runPiped } from "./proc";
 
 export const REPO = "Xevion/motophoto";
+
+/**
+ * Return Go package import paths that have test files.
+ * Passing these explicitly to `go test` avoids printing 0%-coverage lines
+ * for packages with no tests.
+ */
+export function testablePackages(): string[] {
+	const { stdout } = runPiped([
+		"go", "list",
+		"-f", "{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}",
+		"./...",
+	]);
+	return stdout.trim().split("\n").filter(Boolean);
+}
 export const LOCAL_STORE = "local://.octocov";
 export const ARTIFACT_STORE = "artifact://${GITHUB_REPOSITORY}";
 

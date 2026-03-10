@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Xevion/motophoto/internal/server"
+	"github.com/Xevion/motophoto/internal/shutdown"
 	"github.com/Xevion/motophoto/internal/testutil/dbfactory"
 )
 
@@ -24,7 +25,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) http.Handler {
 	sessions := scs.New()
 	sessions.Lifetime = 24 * time.Hour
 
-	srv, err := server.New(pool, sessions)
+	srv, err := server.New(pool, sessions, shutdown.NewTracker(), server.Options{})
 	if err != nil {
 		t.Fatalf("testutil.NewTestServer: %v", err)
 	}
