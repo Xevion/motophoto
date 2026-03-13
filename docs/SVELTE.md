@@ -16,7 +16,11 @@ web/
 |   |           +-- +page.svelte     # Event detail page
 |   |           +-- +page.server.ts  # Event detail data loader
 |   +-- lib/
-|   |   +-- api.ts                   # API client (apiFetch helper)
+|   |   +-- api/                      # API client module
+|   |   |   +-- client.ts            # apiFetch, api convenience methods (get/post/put/patch/del)
+|   |   |   +-- errors.ts            # ApiError, NetworkError classes
+|   |   |   +-- handle.ts            # throwApiError helper for load functions
+|   |   |   +-- index.ts             # Barrel export
 |   |   +-- index.ts                 # Barrel export
 |   |   +-- types.gen.ts             # Auto-generated Go -> TypeScript bindings (tygo)
 |   |   +-- logger.client.ts         # Client-side logger (logtape)
@@ -32,7 +36,6 @@ web/
 |   |   |       +-- form-alert.svelte
 |   |   |       +-- index.ts
 |   |   +-- schemas/                 # Zod validation schemas (auth, etc.)
-|   |   +-- server/                  # Server-side helpers (auth form actions, error parsing)
 |   |   +-- styles/                  # PandaCSS style constants (auth forms, etc.)
 |   |   +-- recipes/                 # PandaCSS recipes for styled components
 |   |       +-- button.ts
@@ -77,16 +80,19 @@ src/routes/galleries/
 2. Write the load function in `+page.server.ts`:
 
 ```typescript
-import { apiFetch } from '$lib/api';
-import { error } from '@sveltejs/kit';
+import { api, throwApiError } from '$lib/api';
+import type { ListResponse, GalleryResponse } from '$lib/types.gen';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
-    const response = await apiFetch('/api/v1/galleries');
-    if (!response.ok) {
-        throw error(response.status, 'Failed to load galleries');
+export const load: PageServerLoad = async ({ fetch }) => {
+    try {
+        const { data: galleries } = await api.get<ListResponse<GalleryResponse>>(
+            '/api/v1/galleries', { fetch },
+        );
+        return { galleries };
+    } catch (err) {
+        throwApiError(err);
     }
-    return { galleries: await response.json() };
 };
 ```
 
@@ -105,18 +111,62 @@ export const load: PageServerLoad = async () => {
 
 ## Data Fetching
 
-### apiFetch
+### API Client (`$lib/api`)
 
-All API calls go through the `apiFetch` helper in `src/lib/api.ts`. It uses relative URLs (e.g., `/api/v1/events`), which are routed to the Go backend automatically:
+All API calls go through the typed client in `src/lib/api/`. It uses relative URLs (e.g., `/api/v1/events`), which are routed to the Go backend automatically:
 
 - **In dev** -- Vite's proxy forwards `/api/*` to Go on `:3001`
 - **In production** -- SvelteKit's `hooks.server.ts` reverse-proxies `/api/*` to Go on `:3001`
 
-```typescript
-import { apiFetch } from '$lib/api';
+The `api` object provides typed convenience methods. Always pass SvelteKit's `fetch` so cookies and headers propagate during SSR:
 
-const response = await apiFetch('/api/v1/events');
-const events = await response.json();
+```typescript
+import { api } from '$lib/api';
+
+const data = await api.get<EventListResponse>('/api/v1/events', { fetch });
+const created = await api.post<ItemResponse<EventResponse>>('/api/v1/events', body, { fetch });
+```
+
+### Error Handling
+
+The client throws two error types:
+
+- **`ApiError`** -- backend returned a non-2xx response. Has `.status`, `.body` (typed `ErrorResponse | null`), and boolean helpers (`.isNotFound`, `.isUnauthorized`, `.isConflict`, etc.)
+- **`NetworkError`** -- fetch itself failed (backend unreachable, DNS, timeout)
+
+In **load functions**, use `throwApiError` to map errors to SvelteKit error pages with the correct HTTP status:
+
+```typescript
+import { api, throwApiError } from '$lib/api';
+
+export const load: PageServerLoad = async ({ params, fetch }) => {
+    try {
+        const { data: event } = await api.get<ItemResponse<EventResponse>>(
+            `/api/v1/events/${params.id}`, { fetch },
+        );
+        return { event };
+    } catch (err) {
+        throwApiError(err);
+    }
+};
+```
+
+In **form actions**, catch `ApiError` and `NetworkError` directly for fine-grained control:
+
+```typescript
+import { api, ApiError, NetworkError } from '$lib/api';
+
+try {
+    await api.post('/api/v1/auth/login', { email, password }, { fetch });
+} catch (err) {
+    if (err instanceof NetworkError) {
+        return message(form, 'Unable to reach the server.', { status: 503 });
+    }
+    if (err instanceof ApiError) {
+        return message(form, err.body?.error ?? 'Login failed.', { status: err.status });
+    }
+    throw err;
+}
 ```
 
 ### Load Functions
@@ -124,15 +174,14 @@ const events = await response.json();
 Data fetching happens in `+page.server.ts` load functions, which run on the server during SSR and on navigation. They return an object that becomes `data` in the corresponding `+page.svelte`.
 
 ```typescript
-// +page.server.ts
 export const load: PageServerLoad = async ({ fetch }) => {
     const [eventsData, health] = await Promise.all([
-        apiFetch<EventsResponse>('/api/v1/events', fetch),
-        apiFetch<HealthResponse>('/api/health', fetch),
+        api.get<EventListResponse>('/api/v1/events', { fetch }),
+        api.get<HealthResponse>('/api/health', { fetch }),
     ]);
     return {
-        events: eventsData.events,
-        total: eventsData.total,
+        events: eventsData.data,
+        total: eventsData.data.length,
         backendStatus: health.status,
     };
 };

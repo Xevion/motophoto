@@ -1,11 +1,11 @@
-import { apiFetch, type EventListResponse, type HealthResponse } from '$lib/api';
+import { api, type EventListResponse, type HealthResponse } from '$lib/api';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ fetch }) => {
 	try {
 		const [eventsData, health] = await Promise.all([
-			apiFetch<EventListResponse>('/api/v1/events', fetch),
-			apiFetch<HealthResponse>('/api/health', fetch),
+			api.get<EventListResponse>('/api/v1/events', { fetch }),
+			api.get<HealthResponse>('/api/health', { fetch }),
 		]);
 
 		return {

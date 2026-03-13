@@ -3,6 +3,9 @@
 //////////
 // source: types.go
 
+export interface ErrorResponse {
+  error: string;
+}
 export interface ListResponse<T extends any> {
   next_cursor?: string;
   data: T[];

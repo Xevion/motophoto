@@ -2,7 +2,8 @@ import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { loginSchema } from '$lib/schemas/auth';
 import { fail, redirect } from '@sveltejs/kit';
-import { parseBackendError } from '$lib/server/auth-actions';
+import { api, ApiError, NetworkError } from '$lib/api';
+import type { ItemResponse, UserResponse } from '$lib/types.gen';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -19,39 +20,25 @@ export const actions: Actions = {
 			return fail(400, { form });
 		}
 
-		let res: Response;
 		try {
-			res = await fetch('/api/v1/auth/login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					email: form.data.email,
-					password: form.data.password,
-				}),
-			});
-		} catch {
-			return message(form, 'Unable to reach the server. Please try again later.', {
-				status: 503,
-			});
+			await api.post<ItemResponse<UserResponse>>(
+				'/api/v1/auth/login',
+				{ email: form.data.email, password: form.data.password },
+				{ fetch },
+			);
+		} catch (err) {
+			if (err instanceof NetworkError) {
+				return message(form, 'Unable to reach the server. Please try again later.', {
+					status: 503,
+				});
+			}
+			if (err instanceof ApiError) {
+				const msg = err.body?.error ?? 'Login failed. Please try again.';
+				return message(form, msg, { status: err.status as 400 | 401 | 403 | 429 | 500 });
+			}
+			throw err;
 		}
 
-		if (res.ok) {
-			redirect(303, '/');
-		}
-
-		if (res.status === 401) {
-			return message(form, 'Invalid email or password.', { status: 401 });
-		}
-		if (res.status === 403) {
-			return message(form, 'This account has been banned.', { status: 403 });
-		}
-		if (res.status === 429) {
-			return message(form, 'Too many attempts. Please wait a moment and try again.', {
-				status: 429,
-			});
-		}
-
-		const errorMsg = await parseBackendError(res);
-		return message(form, errorMsg, { status: res.status as 400 | 500 });
+		redirect(303, '/');
 	},
 };

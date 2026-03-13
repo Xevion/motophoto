@@ -54,13 +54,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (value !== null) headers.set(name, value);
 		}
 
+		// Buffer the request body to avoid duplex streaming issues across runtimes.
+		// ReadableStream bodies with duplex: 'half' throw on some platforms (Node)
+		// when the stream has already been partially consumed or when the runtime
+		// doesn't support half-duplex streaming.
+		const body = event.request.body ? await event.request.arrayBuffer() : undefined;
+
 		try {
 			const response = await fetch(targetUrl, {
 				method: event.request.method,
 				headers,
-				body: event.request.body,
-				// @ts-expect-error -- Bun supports duplex streaming
-				duplex: 'half',
+				body,
 			});
 
 			return new Response(response.body, {
@@ -69,12 +73,27 @@ export const handle: Handle = async ({ event, resolve }) => {
 				headers: response.headers,
 			});
 		} catch (err) {
-			proxyLogger.error('{method} {path} -> backend unreachable', {
-				method: event.request.method,
-				path: pathname,
-				error: err instanceof Error ? err.message : String(err),
-			});
-			return new Response(JSON.stringify({ error: 'Backend unavailable' }), {
+			const message = err instanceof Error ? err.message : String(err);
+			const isConnRefused =
+				message.includes('ECONNREFUSED') ||
+				message.includes('fetch failed') ||
+				message.includes('ConnectionRefused');
+
+			if (isConnRefused) {
+				proxyLogger.error('{method} {path} -> backend unreachable', {
+					method: event.request.method,
+					path: pathname,
+					error: message,
+				});
+			} else {
+				proxyLogger.error('{method} {path} -> proxy error: {error}', {
+					method: event.request.method,
+					path: pathname,
+					error: message,
+				});
+			}
+
+			return new Response(JSON.stringify({ error: isConnRefused ? 'Backend unavailable' : 'Proxy error' }), {
 				status: 502,
 				headers: { 'Content-Type': 'application/json' },
 			});
