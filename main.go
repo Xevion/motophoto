@@ -65,7 +65,7 @@ func initLogging() {
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.LevelKey && len(groups) == 0 {
 					if lvl, ok := a.Value.Any().(slog.Level); ok && lvl <= middleware.LevelTrace {
-						return tint.Attr(13, slog.String(a.Key, "TRC"))
+						return tint.Attr(13, slog.String(a.Key, "TRC")) // 13 = bright magenta
 					}
 				}
 				return a
@@ -156,7 +156,7 @@ func main() {
 		Handler:           srv.Router(),
 		ErrorLog:          slog.NewLogLogger(slog.Default().Handler(), slog.LevelWarn),
 		ReadHeaderTimeout: 15 * time.Second,
-		WriteTimeout:      0,
+		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
