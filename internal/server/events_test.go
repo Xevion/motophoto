@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -166,12 +167,21 @@ func TestHandleDeleteEvent(t *testing.T) {
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
 	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
-	rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID, "", []*http.Cookie{session})
-	assert.Equal(t, http.StatusNoContent, rr.Code)
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID, "", []*http.Cookie{session})
+		assert.Equal(t, http.StatusNoContent, rr.Code)
 
-	// Verify the event is actually gone.
-	rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/"+event.ID, "")
-	assert.Equal(t, http.StatusNotFound, rr.Code)
+		// Verify the event is actually gone.
+		rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/"+event.ID, "")
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("nonexistent is idempotent", func(t *testing.T) {
+		t.Parallel()
+		rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/nonexistent", "", []*http.Cookie{session})
+		assert.Equal(t, http.StatusNoContent, rr.Code)
+	})
 }
 
 func TestHandleListGalleries(t *testing.T) {
@@ -284,14 +294,108 @@ func TestHandleDeleteGallery(t *testing.T) {
 	gal := dbfactory.Gallery(ctx, t, env.Galleries, event.ID, nil)
 	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
 
-	rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, "", []*http.Cookie{session})
-	assert.Equal(t, http.StatusNoContent, rr.Code)
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID+"/galleries/"+gal.ID, "", []*http.Cookie{session})
+		assert.Equal(t, http.StatusNoContent, rr.Code)
 
-	// Verify the gallery is actually gone (list galleries is public).
-	rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/"+event.ID+"/galleries", "")
+		// Verify the gallery is actually gone (list galleries is public).
+		rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/"+event.ID+"/galleries", "")
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var resp server.ListResponse[server.GalleryResponse]
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+		assert.Empty(t, resp.Data)
+	})
+
+	t.Run("nonexistent is idempotent", func(t *testing.T) {
+		t.Parallel()
+		rr := doRequestWithCookies(t, env.Handler, http.MethodDelete, "/api/v1/events/"+event.ID+"/galleries/nonexistent", "", []*http.Cookie{session})
+		assert.Equal(t, http.StatusNoContent, rr.Code)
+	})
+}
+
+func TestHealthEndpoint(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+
+	rr := doRequest(t, env.Handler, http.MethodGet, "/api/health", "")
+
 	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"status":"ok"`)
+}
 
-	var resp server.ListResponse[server.GalleryResponse]
+func TestHandleListGalleries_EventNotFound(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+
+	rr := doRequest(t, env.Handler, http.MethodGet, "/api/v1/events/nonexistent/galleries", "")
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestHandleListEvents_Pagination(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+	ctx := t.Context()
+
+	for i := range 5 {
+		dbfactory.Event(ctx, t, env.Pool, env.Events, &dbfactory.EventOpts{
+			Status: new("published"),
+			Name:   new(fmt.Sprintf("Page Event %d", i)),
+			Slug:   new(fmt.Sprintf("page-event-%d", i)),
+		})
+	}
+
+	// First page: limit=2
+	rr := doRequest(t, env.Handler, http.MethodGet, "/api/v1/events?limit=2", "")
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var page1 server.ListResponse[server.EventResponse]
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page1))
+	assert.Len(t, page1.Data, 2)
+	require.NotNil(t, page1.NextCursor, "expected NextCursor on first page")
+
+	// Second page using cursor
+	rr = doRequest(t, env.Handler, http.MethodGet, "/api/v1/events?limit=2&cursor="+*page1.NextCursor, "")
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var page2 server.ListResponse[server.EventResponse]
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page2))
+	assert.Len(t, page2.Data, 2)
+
+	// Verify no duplicate IDs across pages.
+	seen := map[string]bool{}
+	for _, e := range page1.Data {
+		seen[e.ID] = true
+	}
+	for _, e := range page2.Data {
+		assert.False(t, seen[e.ID], "duplicate ID %s across pages", e.ID)
+	}
+}
+
+func TestHandleCreateEvent_WithOptionalFields(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+	session, _ := testutil.LoginPhotographer(t, env.Handler, env.Pool)
+
+	body := `{
+		"name":"Full Event",
+		"slug":"full-event",
+		"sport":"motocross",
+		"location":"Austin, TX",
+		"description":"A great event",
+		"date":"2026-06-15"
+	}`
+	rr := doRequestWithCookies(t, env.Handler, http.MethodPost, "/api/v1/events", body, []*http.Cookie{session})
+
+	require.Equal(t, http.StatusCreated, rr.Code)
+
+	var resp server.ItemResponse[server.EventResponse]
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-	assert.Empty(t, resp.Data)
+	require.NotNil(t, resp.Data.Location, "Location should be set")
+	assert.Equal(t, "Austin, TX", *resp.Data.Location)
+	require.NotNil(t, resp.Data.Description, "Description should be set")
+	assert.Equal(t, "A great event", *resp.Data.Description)
+	require.NotNil(t, resp.Data.Date, "Date should be set")
+	assert.Equal(t, "2026-06-15", *resp.Data.Date)
 }
