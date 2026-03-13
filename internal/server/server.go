@@ -97,6 +97,12 @@ func (s *Server) setupRoutes() {
 			r.Get("/events/{id}", s.handleGetEvent)
 			r.Get("/events/{eventId}/galleries", s.handleListGalleries)
 
+			// Authenticated routes (any role)
+			r.Group(func(r chi.Router) {
+				r.Use(s.auth.RequireAuth)
+				r.Get("/me", s.handleGetMe)
+			})
+
 			// Photographer-only write endpoints
 			r.Group(func(r chi.Router) {
 				r.Use(s.auth.RequireRole(db.UserRolePhotographer))

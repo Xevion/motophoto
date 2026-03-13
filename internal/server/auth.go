@@ -15,6 +15,15 @@ import (
 	"github.com/Xevion/motophoto/internal/middleware"
 )
 
+func userResponseFromDB(u db.User) UserResponse {
+	return UserResponse{
+		ID:          u.ID,
+		Email:       u.Email,
+		DisplayName: u.DisplayName,
+		Role:        string(u.Role),
+	}
+}
+
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
 	var req LoginRequest
@@ -56,12 +65,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	s.sessions.Put(r.Context(), "user_id", user.ID)
 
-	writeJSON(w, http.StatusOK, ItemResponse[UserResponse]{Data: UserResponse{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
-		Role:        string(user.Role),
-	}})
+	writeJSON(w, http.StatusOK, ItemResponse[UserResponse]{Data: userResponseFromDB(user)})
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +122,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		middleware.LoggerFromContext(r.Context()).Error("hashing password", "error", fmt.Errorf("hashing password: %w", err))
+		middleware.LoggerFromContext(r.Context()).Error("hashing password", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to register")
 		return
 	}
@@ -136,12 +140,22 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := s.sessions.RenewToken(r.Context()); err != nil {
+		middleware.LoggerFromContext(r.Context()).Error("renewing session token", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to register")
+		return
+	}
 	s.sessions.Put(r.Context(), "user_id", user.ID)
 
-	writeJSON(w, http.StatusCreated, ItemResponse[UserResponse]{Data: UserResponse{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
-		Role:        string(user.Role),
-	}})
+	writeJSON(w, http.StatusCreated, ItemResponse[UserResponse]{Data: userResponseFromDB(user)})
+}
+
+func (s *Server) handleGetMe(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, ItemResponse[UserResponse]{Data: userResponseFromDB(*user)})
 }

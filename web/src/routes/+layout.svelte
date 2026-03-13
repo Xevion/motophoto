@@ -1,14 +1,16 @@
 <script lang="ts">
 import '../app.css';
 import favicon from '$lib/assets/favicon.svg';
+import { page } from '$app/state';
 import { resolve } from '$app/paths';
 import { themeStore } from '$lib/stores/theme.svelte';
 import ThemeToggle from '$lib/components/theme-toggle.svelte';
 import Button from '$lib/components/ui/button.svelte';
 import type { Snippet } from 'svelte';
+import type { LayoutServerData } from './$types';
 import { css } from 'styled-system/css';
 
-let { children }: { children: Snippet } = $props();
+let { children, data }: { children: Snippet; data: LayoutServerData } = $props();
 
 themeStore.init();
 
@@ -85,6 +87,12 @@ const navActions = css({
 	alignItems: 'center',
 	gap: '2',
 });
+
+const userName = css({
+	fontSize: 'sm',
+	fontWeight: 'medium',
+	color: 'fg.muted',
+});
 </script>
 
 <svelte:head>
@@ -103,8 +111,19 @@ const navActions = css({
         <a href="/for-photographers" class={navLink}>For Photographers</a>
       </nav>
       <div class={navActions}>
-        <Button href={resolve('/login')} variant="ghost" size="sm">Log In</Button>
-        <Button href={resolve('/register')} size="sm">Sign Up</Button>
+        {#if data.user}
+          <span class={userName}>{data.user.display_name}</span>
+          <form method="POST" action="/logout">
+            <Button type="submit" variant="ghost" size="sm">Log Out</Button>
+          </form>
+        {:else}
+          {#if page.url.pathname !== '/login'}
+            <Button href={resolve('/login')} variant="ghost" size="sm">Log In</Button>
+          {/if}
+          {#if page.url.pathname !== '/register'}
+            <Button href={resolve('/register')} size="sm">Sign Up</Button>
+          {/if}
+        {/if}
         <ThemeToggle />
       </div>
     </div>
