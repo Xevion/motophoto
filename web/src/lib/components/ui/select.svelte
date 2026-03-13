@@ -133,10 +133,11 @@ const itemIndicator = css({
 	{collection}
 	{value}
 	{invalid}
+	ids={id ? { trigger: id } : undefined}
 	onValueChange={(details) => onValueChange(details.value)}
 >
 	<Select.Control>
-		<Select.Trigger {id} class={cx(triggerClass ?? trigger, invalid && triggerInvalid)}>
+		<Select.Trigger class={cx(triggerClass ?? trigger, invalid && triggerInvalid)}>
 			{#if icon}
 				{@render icon()}
 			{/if}
