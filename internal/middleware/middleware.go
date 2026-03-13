@@ -126,10 +126,10 @@ func (w *wrappedWriter) WriteHeader(status int) {
 	w.ResponseWriter.WriteHeader(status)
 }
 
-// requestLogLevel returns the appropriate log level for a successful request
+// RequestLogLevel returns the appropriate log level for a successful request
 // based on its path. API requests are INFO, SSR-proxied page loads are DEBUG,
 // and dev asset requests (Vite HMR, node_modules, source files) are TRACE.
-func requestLogLevel(path string) slog.Level {
+func RequestLogLevel(path string) slog.Level {
 	if strings.HasPrefix(path, "/api/") {
 		return slog.LevelInfo
 	}
@@ -200,7 +200,7 @@ func RequestLogger(next http.Handler) http.Handler {
 		case ww.status >= 400:
 			logger.Warn("request error", attrs...)
 		default:
-			level := requestLogLevel(r.URL.Path)
+			level := RequestLogLevel(r.URL.Path)
 			logger.Log(r.Context(), level, "request", attrs...)
 		}
 	})

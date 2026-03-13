@@ -2,6 +2,7 @@ package middleware_test
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -81,6 +82,82 @@ func TestRealIP_FallsBackToRemoteAddr(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Contains(t, rr.Header().Get("X-Resolved-IP"), "192.0.2.1")
+}
+
+func TestRequestLogLevel(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		path string
+		want slog.Level
+	}{
+		{"/api/v1/events", slog.LevelInfo},
+		{"/api/health", slog.LevelInfo},
+		{"/src/main.ts", middleware.LevelTrace},
+		{"/node_modules/svelte/index.js", middleware.LevelTrace},
+		{"/@vite/client", middleware.LevelTrace},
+		{"/.svelte-kit/generated/root.svelte", middleware.LevelTrace},
+		{"/styled-system/tokens/index.mjs", middleware.LevelTrace},
+		{"/about", slog.LevelDebug},
+		{"/", slog.LevelDebug},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			t.Parallel()
+			got := middleware.RequestLogLevel(tt.path)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestRequestLogger_5xx(t *testing.T) {
+	t.Parallel()
+
+	handler := middleware.RequestID(middleware.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})))
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/v1/events", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestRequestLogger_ClientDisconnect(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	handler := middleware.RequestID(middleware.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cancel()
+		w.WriteHeader(http.StatusOK)
+	})))
+
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/v1/events", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestLoggerFromContext_NoLogger(t *testing.T) {
+	t.Parallel()
+	logger := middleware.LoggerFromContext(context.Background())
+	assert.NotNil(t, logger, "should return default logger when none in context")
+}
+
+func TestWrappedWriter_DoubleWriteHeader(t *testing.T) {
+	t.Parallel()
+
+	handler := middleware.RequestID(middleware.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK) // second write should be ignored
+	})))
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
 }
 
 func TestRealIP_CloudflareFastlyChain(t *testing.T) {
