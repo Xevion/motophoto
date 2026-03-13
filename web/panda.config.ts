@@ -14,6 +14,13 @@ export default defineConfig({
 
 	jsxFramework: undefined,
 
+	staticCss: {
+		recipes: {
+			button: ['*'],
+			badge: ['*'],
+		},
+	},
+
 	theme: {
 		extend: {
 			recipes: {

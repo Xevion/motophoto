@@ -1,56 +1,34 @@
 <script lang="ts">
-/* eslint-disable @typescript-eslint/no-unsafe-call -- ArkUI asChild callback types unresolved */
 import '../app.css';
 import favicon from '$lib/assets/favicon.svg';
 import { resolve } from '$app/paths';
 import { themeStore } from '$lib/stores/theme.svelte';
 import ThemeToggle from '$lib/components/theme-toggle.svelte';
+import Button from '$lib/components/ui/button.svelte';
 import type { Snippet } from 'svelte';
 import { css } from 'styled-system/css';
-import { Menu } from '@ark-ui/svelte/menu';
-import { Avatar } from '@ark-ui/svelte/avatar';
-import { menu } from 'styled-system/recipes';
-
-import LogIn from '@lucide/svelte/icons/log-in';
-import UserPlus from '@lucide/svelte/icons/user-plus';
 
 let { children }: { children: Snippet } = $props();
 
 themeStore.init();
 
-const menuClasses = menu();
-
-const avatarRoot = css({
-	display: 'inline-flex',
+const navLinks = css({
+	display: 'flex',
 	alignItems: 'center',
-	justifyContent: 'center',
-	fontWeight: 'medium',
-	flexShrink: 0,
-	borderRadius: 'full',
-	bg: 'bg.muted',
-	color: 'fg.muted',
-	fontSize: 'xs',
-	w: '8',
-	h: '8',
-	cursor: 'pointer',
+	gap: '1',
 });
 
-const avatarTrigger = css({
-	display: 'inline-flex',
-	alignItems: 'center',
-	gap: '1.5',
-	bg: 'transparent',
-	border: 'none',
-	cursor: 'pointer',
-	borderRadius: 'full',
-	p: '0',
-	_focusVisible: {
-		outlineWidth: '2px',
-		outlineColor: 'primary',
-		outlineOffset: '2px',
-		outlineStyle: 'solid',
-		borderRadius: 'full',
-	},
+const navLink = css({
+	fontSize: 'sm',
+	fontWeight: 'medium',
+	color: 'fg.muted',
+	textDecoration: 'none',
+	px: '3',
+	py: '1.5',
+	borderRadius: 'md',
+	transition: 'colors',
+	transitionDuration: '150ms',
+	_hover: { color: 'fg', bg: 'bg.muted' },
 });
 
 const layout = css({
@@ -119,34 +97,14 @@ const navActions = css({
       <a href={resolve("/")} class={logoLink}>
         <span class={logoText}>MotoPhoto</span>
       </a>
+      <nav class={navLinks}>
+        <a href={resolve('/events')} class={navLink}>Browse Events</a>
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- route not yet created -->
+        <a href="/for-photographers" class={navLink}>For Photographers</a>
+      </nav>
       <div class={navActions}>
-        <Menu.Root positioning={{ placement: 'bottom-end' }} closeOnSelect>
-          <Menu.Trigger class={avatarTrigger}>
-            <Avatar.Root class={avatarRoot}>
-              <Avatar.Fallback>?</Avatar.Fallback>
-            </Avatar.Root>
-          </Menu.Trigger>
-          <Menu.Positioner class={menuClasses.positioner}>
-            <Menu.Content class={menuClasses.content}>
-              <Menu.Item class={menuClasses.item} value="login">
-                {#snippet asChild(itemProps)}
-                  <a href={resolve('/login')} {...itemProps()}>
-                    <LogIn />
-                    Login
-                  </a>
-                {/snippet}
-              </Menu.Item>
-              <Menu.Item class={menuClasses.item} value="register">
-                {#snippet asChild(itemProps)}
-                  <a href={resolve('/register')} {...itemProps()}>
-                    <UserPlus />
-                    Register
-                  </a>
-                {/snippet}
-              </Menu.Item>
-            </Menu.Content>
-          </Menu.Positioner>
-        </Menu.Root>
+        <Button href={resolve('/login')} variant="ghost" size="sm">Log In</Button>
+        <Button href={resolve('/register')} size="sm">Sign Up</Button>
         <ThemeToggle />
       </div>
     </div>
