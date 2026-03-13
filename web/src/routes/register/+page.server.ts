@@ -2,7 +2,8 @@ import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { registerSchema } from '$lib/schemas/auth';
 import { fail, redirect } from '@sveltejs/kit';
-import { parseBackendError } from '$lib/server/auth-actions';
+import { api, ApiError, NetworkError } from '$lib/api';
+import type { ItemResponse, UserResponse } from '$lib/types.gen';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -19,38 +20,30 @@ export const actions: Actions = {
 			return fail(400, { form });
 		}
 
-		let res: Response;
 		try {
-			res = await fetch('/api/v1/auth/register', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
+			await api.post<ItemResponse<UserResponse>>(
+				'/api/v1/auth/register',
+				{
 					email: form.data.email,
 					password: form.data.password,
 					display_name: form.data.display_name,
 					role: form.data.role,
-				}),
-			});
-		} catch {
-			return message(form, 'Unable to reach the server. Please try again later.', {
-				status: 503,
-			});
+				},
+				{ fetch },
+			);
+		} catch (err) {
+			if (err instanceof NetworkError) {
+				return message(form, 'Unable to reach the server. Please try again later.', {
+					status: 503,
+				});
+			}
+			if (err instanceof ApiError) {
+				const msg = err.body?.error ?? 'Registration failed. Please try again.';
+				return message(form, msg, { status: err.status as 400 | 409 | 429 | 500 });
+			}
+			throw err;
 		}
 
-		if (res.ok) {
-			redirect(303, '/');
-		}
-
-		if (res.status === 409) {
-			return message(form, 'An account with this email already exists.', { status: 409 });
-		}
-		if (res.status === 429) {
-			return message(form, 'Too many attempts. Please wait a moment and try again.', {
-				status: 429,
-			});
-		}
-
-		const errorMsg = await parseBackendError(res);
-		return message(form, errorMsg, { status: res.status as 400 | 500 });
+		redirect(303, '/');
 	},
 };

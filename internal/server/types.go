@@ -2,6 +2,10 @@ package server
 
 // API response types -- tygo generates TypeScript bindings from this file.
 
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
 type ListResponse[T any] struct {
 	NextCursor *string `json:"next_cursor"`
 	Data       []T     `json:"data"`
