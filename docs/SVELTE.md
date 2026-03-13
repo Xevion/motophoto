@@ -154,53 +154,13 @@ See the [Svelte 5 docs](https://svelte.dev/docs/svelte) for the full runes API.
 
 ### PandaCSS
 
-[PandaCSS](https://panda-css.com) is the CSS-in-JS-at-build-time framework used for styling. It generates a `styled-system/` directory with utility functions and CSS variables -- never edit that directory.
+[PandaCSS](https://panda-css.com) is the CSS-in-JS-at-build-time framework used for styling. See **[PANDACSS.md](PANDACSS.md)** for the full guide including token reference, static extraction rules, recipe patterns, and common mistakes.
 
-Config lives in `panda.config.ts`. The design tokens there (colors, spacing, radii) are the single source of truth for the visual language.
-
-Recipes in `src/lib/recipes/` define multi-variant component styles (e.g., `button` has `variant` and `size` props). Apply recipes in Svelte components:
-
-```svelte
-<script lang="ts">
-    import { css } from 'styled-system/css';
-    import { button } from '$lib/recipes/button';
-</script>
-
-<button class={button({ variant: 'solid', size: 'md' })}>Click me</button>
-```
-
-Run `panda codegen` (via `bun run prepare`) to regenerate `styled-system/` after changing `panda.config.ts` or recipes.
-
-#### Patterns
-
-**All `css()` calls are named constants in `<script>`, never inline in templates.**
-
-```svelte
-<!-- good -->
-<script lang="ts">
-    const wrapper = css({ display: 'flex', gap: '4' });
-</script>
-<div class={wrapper}>...</div>
-
-<!-- avoid -->
-<div class={css({ display: 'flex', gap: '4' })}>...</div>
-```
-
-**Use `cx()` for conditional class merging, not string interpolation.**
-
-```svelte
-<script lang="ts">
-    import { css, cx } from 'styled-system/css';
-    const input = css({ borderColor: 'border' });
-    const inputError = css({ borderColor: 'danger' });
-</script>
-
-<!-- good -->
-<div class={cx(input, hasError && inputError)}>...</div>
-
-<!-- avoid -->
-<div class="{input} {hasError ? inputError : ''}">...</div>
-```
+Quick rules:
+- `styled-system/` is generated -- never edit it
+- All token keys must exist in `panda.config.ts` -- unknown keys are silently ignored
+- All `css()` calls are named constants in `<script>`, never inline in templates
+- Recipes called with dynamic props require `staticCss` in `panda.config.ts`
 
 ### Ark UI
 
