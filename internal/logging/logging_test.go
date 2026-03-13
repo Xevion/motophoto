@@ -11,18 +11,18 @@ import (
 func TestFormatDuration(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		input time.Duration
 		want  string
+		input time.Duration
 	}{
-		{450 * time.Millisecond, "450ms"},
-		{0, "0ms"},
-		{999 * time.Millisecond, "999ms"},
-		{1 * time.Second, "1.0s"},
-		{3200 * time.Millisecond, "3.2s"},
-		{59 * time.Second, "59.0s"},
-		{1 * time.Minute, "1m00s"},
-		{2*time.Minute + 3*time.Second, "2m03s"},
-		{-500 * time.Millisecond, "500ms"},
+		{want: "450ms", input: 450 * time.Millisecond},
+		{want: "0ms", input: 0},
+		{want: "999ms", input: 999 * time.Millisecond},
+		{want: "1.0s", input: 1 * time.Second},
+		{want: "3.2s", input: 3200 * time.Millisecond},
+		{want: "59.0s", input: 59 * time.Second},
+		{want: "1m00s", input: 1 * time.Minute},
+		{want: "2m03s", input: 2*time.Minute + 3*time.Second},
+		{want: "500ms", input: -500 * time.Millisecond},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input.String(), func(t *testing.T) {
@@ -37,15 +37,15 @@ func TestFormatInt(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		n    int64
 		want string
+		n    int64
 	}{
-		{"below threshold", 42, "42"},
-		{"negative below threshold", -100, "-100"},
-		{"at threshold boundary", 9999, "9999"},
-		{"above threshold", 10_000, "10,000"},
-		{"large number", 1_234_567, "1,234,567"},
-		{"negative above threshold", -50_000, "-50,000"},
+		{name: "below threshold", want: "42", n: 42},
+		{name: "negative below threshold", want: "-100", n: -100},
+		{name: "at threshold boundary", want: "9999", n: 9999},
+		{name: "above threshold", want: "10,000", n: 10_000},
+		{name: "large number", want: "1,234,567", n: 1_234_567},
+		{name: "negative above threshold", want: "-50,000", n: -50_000},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -65,13 +65,13 @@ func TestPct_LogValue(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name string
-		pct  Pct
 		want string
+		pct  Pct
 	}{
-		{"whole number", Pct(42), "42%"},
-		{"decimal", Pct(94.3), "94.3%"},
-		{"zero", Pct(0), "0%"},
-		{"hundred", Pct(100), "100%"},
+		{name: "whole number", want: "42%", pct: Pct(42)},
+		{name: "decimal", want: "94.3%", pct: Pct(94.3)},
+		{name: "zero", want: "0%", pct: Pct(0)},
+		{name: "hundred", want: "100%", pct: Pct(100)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,31 +13,6 @@ import (
 	"github.com/Xevion/motophoto/internal/testutil"
 	"github.com/Xevion/motophoto/internal/testutil/dbfactory"
 )
-
-// doRequest is a small helper to reduce httptest boilerplate.
-func doRequest(t *testing.T, handler http.Handler, method, path string, body string) *httptest.ResponseRecorder {
-	t.Helper()
-	return doRequestWithCookies(t, handler, method, path, body, nil)
-}
-
-// doRequestWithCookies is like doRequest but attaches the given cookies to the
-// request. Use this for endpoints that require authentication.
-func doRequestWithCookies(t *testing.T, handler http.Handler, method, path string, body string, cookies []*http.Cookie) *httptest.ResponseRecorder {
-	t.Helper()
-	var req *http.Request
-	if body != "" {
-		req = httptest.NewRequestWithContext(t.Context(), method, path, strings.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-	} else {
-		req = httptest.NewRequestWithContext(t.Context(), method, path, nil)
-	}
-	for _, c := range cookies {
-		req.AddCookie(c)
-	}
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-	return rr
-}
 
 func TestHandleListEvents(t *testing.T) {
 	t.Parallel()
@@ -398,4 +371,18 @@ func TestHandleCreateEvent_WithOptionalFields(t *testing.T) {
 	assert.Equal(t, "A great event", *resp.Data.Description)
 	require.NotNil(t, resp.Data.Date, "Date should be set")
 	assert.Equal(t, "2026-06-15", *resp.Data.Date)
+}
+
+func TestHandleListEvents_Empty(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+
+	rr := doRequest(t, env.Handler, http.MethodGet, "/api/v1/events", "")
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var resp server.ListResponse[server.EventResponse]
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	require.NotNil(t, resp.Data, "data should be an empty array, not null")
+	assert.Empty(t, resp.Data)
 }

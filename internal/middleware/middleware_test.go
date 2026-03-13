@@ -2,7 +2,6 @@ package middleware_test
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -84,31 +83,6 @@ func TestRealIP_FallsBackToRemoteAddr(t *testing.T) {
 	assert.Contains(t, rr.Header().Get("X-Resolved-IP"), "192.0.2.1")
 }
 
-func TestRequestLogLevel(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		path string
-		want slog.Level
-	}{
-		{"/api/v1/events", slog.LevelInfo},
-		{"/api/health", slog.LevelInfo},
-		{"/src/main.ts", middleware.LevelTrace},
-		{"/node_modules/svelte/index.js", middleware.LevelTrace},
-		{"/@vite/client", middleware.LevelTrace},
-		{"/.svelte-kit/generated/root.svelte", middleware.LevelTrace},
-		{"/styled-system/tokens/index.mjs", middleware.LevelTrace},
-		{"/about", slog.LevelDebug},
-		{"/", slog.LevelDebug},
-	}
-	for _, tt := range tests {
-		t.Run(tt.path, func(t *testing.T) {
-			t.Parallel()
-			got := middleware.RequestLogLevel(tt.path)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func TestRequestLogger_5xx(t *testing.T) {
 	t.Parallel()
 
@@ -127,6 +101,7 @@ func TestRequestLogger_ClientDisconnect(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	handler := middleware.RequestID(middleware.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cancel()
 		w.WriteHeader(http.StatusOK)
