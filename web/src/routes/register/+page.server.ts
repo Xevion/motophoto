@@ -1,12 +1,15 @@
 import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { registerSchema } from '$lib/schemas/auth';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, type NumericRange } from '@sveltejs/kit';
 import { api, ApiError, NetworkError, userMessage } from '$lib/api';
+import { redirectIfAuthenticated } from '$lib/auth/guard';
 import type { ItemResponse, UserResponse } from '$lib/types.gen';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ parent }) => {
+	const { user } = await parent();
+	redirectIfAuthenticated(user);
 	return {
 		form: await superValidate(zod4(registerSchema)),
 	};
@@ -37,7 +40,7 @@ export const actions: Actions = {
 			}
 			if (err instanceof ApiError) {
 				return message(form, userMessage(err.body?.error), {
-					status: err.status as 400 | 409 | 429 | 500,
+					status: err.status as NumericRange<400, 599>,
 				});
 			}
 			throw err;

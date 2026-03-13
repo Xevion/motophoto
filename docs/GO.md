@@ -32,9 +32,10 @@ GET    /api/health                              -> {"status": "ok"}
 POST   /api/v1/auth/register                    -> create account
 POST   /api/v1/auth/login                       -> log in (sets session cookie)
 POST   /api/v1/auth/logout                      -> log out (clears session)
+# Authenticated (RequireAuth):
+GET    /api/v1/me                               -> current user
+
 GET    /api/v1/events                           -> list published events (cursor-paginated)
-GET    /api/v1/events/{id}                      -> get event by nanoid or slug (includes galleries)
-GET    /api/v1/events/{eventId}/galleries       -> list galleries for event
 
 # Photographer-only (RequireRole):
 POST   /api/v1/events                           -> create event
