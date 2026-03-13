@@ -78,13 +78,13 @@ type UpdateGalleryRequest struct {
 type LoginRequest struct {
 	Email string `json:"email"    validate:"required,email"`
 	//nolint:gosec // G117: intentional request body field
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" validate:"required,max=72"`
 }
 
 type RegisterRequest struct {
 	Email string `json:"email"        validate:"required,email"`
 	//nolint:gosec // G117: intentional request body field
-	Password    string `json:"password"     validate:"required,min=8"`
+	Password    string `json:"password"     validate:"required,min=8,max=72"`
 	DisplayName string `json:"display_name" validate:"required"`
 	Role        string `json:"role"         validate:"required,oneof=photographer customer"`
 }

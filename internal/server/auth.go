@@ -5,15 +5,43 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
+	validator "github.com/go-playground/validator/v10"
 	nanoid "github.com/matoous/go-nanoid/v2"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/Xevion/motophoto/internal/database/db"
 	"github.com/Xevion/motophoto/internal/middleware"
 )
+
+// validationMessage converts a validator.ValidationErrors into a single
+// user-friendly string, hiding internal struct names and tag syntax.
+func validationMessage(err error) string {
+	var ve validator.ValidationErrors
+	if !errors.As(err, &ve) {
+		return "invalid request"
+	}
+	e := ve[0]
+	field := strings.ToLower(e.Field())
+	switch e.Tag() {
+	case "required":
+		return field + " is required"
+	case "email":
+		return field + " must be a valid email address"
+	case "min":
+		return fmt.Sprintf("%s must be at least %s characters", field, e.Param())
+	case "max":
+		return fmt.Sprintf("%s must be at most %s characters", field, e.Param())
+	case "oneof":
+		return fmt.Sprintf("%s must be one of: %s", field, strings.ReplaceAll(e.Param(), " ", ", "))
+	default:
+		return field + " is invalid"
+	}
+}
 
 func userResponseFromDB(u db.User) UserResponse {
 	return UserResponse{
@@ -33,7 +61,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validate.Struct(req); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("validation failed: %s", err))
+		writeError(w, http.StatusBadRequest, validationMessage(err))
 		return
 	}
 
@@ -87,7 +115,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := validate.Struct(req); err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("validation failed: %s", err))
+		writeError(w, http.StatusBadRequest, validationMessage(err))
 		return
 	}
 
@@ -99,17 +127,6 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		role = db.UserRoleCustomer
 	default:
 		writeError(w, http.StatusBadRequest, "invalid role")
-		return
-	}
-
-	_, err := s.queries.GetUserByEmail(r.Context(), req.Email)
-	if err == nil {
-		writeError(w, http.StatusConflict, "email already exists")
-		return
-	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		middleware.LoggerFromContext(r.Context()).Error("checking email uniqueness", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to register")
 		return
 	}
 
@@ -135,6 +152,11 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		Role:         role,
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeError(w, http.StatusConflict, "email already exists")
+			return
+		}
 		middleware.LoggerFromContext(r.Context()).Error("creating user", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to register")
 		return

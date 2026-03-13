@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Xevion/motophoto/internal/server"
+	"github.com/Xevion/motophoto/internal/session"
 	"github.com/Xevion/motophoto/internal/shutdown"
 	"github.com/Xevion/motophoto/internal/testutil/dbfactory"
 )
@@ -24,6 +25,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) http.Handler {
 
 	sessions := scs.New()
 	sessions.Lifetime = 24 * time.Hour
+	sessions.Cookie.Name = session.CookieName
 
 	srv, err := server.New(pool, sessions, shutdown.NewTracker(), server.Options{})
 	if err != nil {
@@ -65,7 +67,7 @@ func loginAs(t *testing.T, handler http.Handler, pool *pgxpool.Pool, role string
 
 	var sessionCookie *http.Cookie
 	for _, c := range rr.Result().Cookies() {
-		if c.Name == "session" {
+		if c.Name == session.CookieName {
 			sessionCookie = c
 			break
 		}

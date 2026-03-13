@@ -10,6 +10,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// CookieName is the name used for the session cookie. Tests must use this
+// constant when looking up the cookie returned by handlers under test.
+const CookieName = "session_id"
+
 // New creates a session manager backed by PostgreSQL.
 // The store starts a background goroutine that cleans up expired sessions every 5 minutes.
 // When production is true, the Secure flag is set on session cookies.
@@ -18,7 +22,7 @@ func New(pool *pgxpool.Pool, production bool) *scs.SessionManager {
 	sm.Store = pgxstore.New(pool)
 	sm.Lifetime = 24 * time.Hour
 	sm.IdleTimeout = 30 * time.Minute
-	sm.Cookie.Name = "session_id"
+	sm.Cookie.Name = CookieName
 	sm.Cookie.HttpOnly = true
 	sm.Cookie.Secure = production
 	sm.Cookie.SameSite = http.SameSiteLaxMode
