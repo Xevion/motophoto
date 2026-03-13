@@ -138,7 +138,6 @@ func TestGalleryService_Delete_Nonexistent(t *testing.T) {
 
 	event := dbfactory.Event(ctx, t, env.Pool, env.Events, nil)
 
-	// Documents behavior: deleting a non-existent gallery doesn't panic.
 	err := env.Galleries.Delete(ctx, event.ID, "nonexistent-gallery")
-	_ = err
+	assert.NoError(t, err)
 }

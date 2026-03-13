@@ -16,81 +16,88 @@ func TestEventService_Create(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnv(t)
 	ctx := t.Context()
-
 	userID := dbfactory.User(ctx, t, env.Pool, nil)
 
-	event, err := env.Events.Create(ctx, service.CreateEventParams{
-		PhotographerID: userID,
-		Name:           "Spring MX 2026",
-		Slug:           "spring-mx-2026",
-		Sport:          "motocross",
-	})
-	require.NoError(t, err)
-	assert.NotEmpty(t, event.ID)
-	assert.Equal(t, "Spring MX 2026", event.Name)
-	assert.Equal(t, "spring-mx-2026", event.Slug)
-	assert.Equal(t, "motocross", event.Sport)
-	assert.Equal(t, "draft", event.Status)
-}
+	tests := []struct {
+		checks  func(t *testing.T, event *service.Event)
+		name    string
+		wantErr string
+		params  service.CreateEventParams
+	}{
+		{
+			name: "valid",
+			params: service.CreateEventParams{
+				PhotographerID: userID,
+				Name:           "Spring MX 2026",
+				Slug:           "spring-mx-2026",
+				Sport:          "motocross",
+			},
+			checks: func(t *testing.T, event *service.Event) {
+				assert.NotEmpty(t, event.ID)
+				assert.Equal(t, "Spring MX 2026", event.Name)
+				assert.Equal(t, "spring-mx-2026", event.Slug)
+				assert.Equal(t, "motocross", event.Sport)
+				assert.Equal(t, "draft", event.Status)
+			},
+		},
+		{
+			name: "with tags",
+			params: service.CreateEventParams{
+				PhotographerID: userID,
+				Name:           "Tagged Event",
+				Slug:           "tagged-event",
+				Sport:          "motocross",
+				Tags:           []string{"outdoor", "motocross", "spring-2026"},
+			},
+			checks: func(t *testing.T, event *service.Event) {
+				wantTags := []string{"outdoor", "motocross", "spring-2026"}
+				assert.Equal(t, wantTags, event.Tags)
 
-func TestEventService_Create_WithTags(t *testing.T) {
-	t.Parallel()
-	env := testutil.NewEnv(t)
-	ctx := t.Context()
+				// Round-trip: fetch and verify tags survive persistence.
+				got, err := env.Events.Get(ctx, event.ID)
+				require.NoError(t, err)
+				assert.Equal(t, wantTags, got.Tags)
+			},
+		},
+		{
+			name: "invalid status",
+			params: service.CreateEventParams{
+				PhotographerID: userID,
+				Name:           "Bad Status",
+				Slug:           "bad-status",
+				Sport:          "motocross",
+				Status:         new("bogus"),
+			},
+			wantErr: "invalid status",
+		},
+		{
+			name: "invalid date",
+			params: service.CreateEventParams{
+				PhotographerID: userID,
+				Name:           "Bad Date",
+				Slug:           "bad-date",
+				Sport:          "motocross",
+				Date:           new("not-a-date"),
+			},
+			wantErr: "invalid date",
+		},
+	}
 
-	userID := dbfactory.User(ctx, t, env.Pool, nil)
-	tags := []string{"outdoor", "motocross", "spring-2026"}
-
-	event, err := env.Events.Create(ctx, service.CreateEventParams{
-		PhotographerID: userID,
-		Name:           "Tagged Event",
-		Slug:           "tagged-event",
-		Sport:          "motocross",
-		Tags:           tags,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, tags, event.Tags)
-
-	// Round-trip: fetch and verify tags survive persistence.
-	got, err := env.Events.Get(ctx, event.ID)
-	require.NoError(t, err)
-	assert.Equal(t, tags, got.Tags)
-}
-
-func TestEventService_Create_InvalidStatus(t *testing.T) {
-	t.Parallel()
-	env := testutil.NewEnv(t)
-	ctx := t.Context()
-
-	userID := dbfactory.User(ctx, t, env.Pool, nil)
-
-	_, err := env.Events.Create(ctx, service.CreateEventParams{
-		PhotographerID: userID,
-		Name:           "Bad Status",
-		Slug:           "bad-status",
-		Sport:          "motocross",
-		Status:         new("bogus"),
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid status")
-}
-
-func TestEventService_Create_InvalidDate(t *testing.T) {
-	t.Parallel()
-	env := testutil.NewEnv(t)
-	ctx := t.Context()
-
-	userID := dbfactory.User(ctx, t, env.Pool, nil)
-
-	_, err := env.Events.Create(ctx, service.CreateEventParams{
-		PhotographerID: userID,
-		Name:           "Bad Date",
-		Slug:           "bad-date",
-		Sport:          "motocross",
-		Date:           new("not-a-date"),
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid date")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			event, err := env.Events.Create(ctx, tt.params)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			if tt.checks != nil {
+				tt.checks(t, event)
+			}
+		})
+	}
 }
 
 func TestEventService_Create_DuplicateSlug(t *testing.T) {
@@ -281,6 +288,33 @@ func TestEventService_Update_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, service.ErrNotFound)
 }
 
+func TestEventService_Update_PreservesUnchangedFields(t *testing.T) {
+	t.Parallel()
+	env := testutil.NewEnv(t)
+	ctx := t.Context()
+
+	event := dbfactory.Event(ctx, t, env.Pool, env.Events, &dbfactory.EventOpts{
+		Name:        new("Original Name"),
+		Slug:        new("original-slug"),
+		Location:    new("Austin, TX"),
+		Description: new("A great event"),
+		Date:        new("2026-06-15"),
+	})
+
+	updated, err := env.Events.Update(ctx, event.ID, service.UpdateEventParams{
+		Name: new("New Name"),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "New Name", updated.Name)
+	assert.Equal(t, "original-slug", updated.Slug)
+	require.NotNil(t, updated.Location)
+	assert.Equal(t, "Austin, TX", *updated.Location)
+	require.NotNil(t, updated.Description)
+	assert.Equal(t, "A great event", *updated.Description)
+	require.NotNil(t, updated.Date)
+	assert.Equal(t, "2026-06-15", *updated.Date)
+}
+
 func TestEventService_Delete(t *testing.T) {
 	t.Parallel()
 	env := testutil.NewEnv(t)
@@ -300,10 +334,6 @@ func TestEventService_Delete_Nonexistent(t *testing.T) {
 	env := testutil.NewEnv(t)
 	ctx := t.Context()
 
-	// Deleting a non-existent event should not error (idempotent) or return
-	// a meaningful error depending on implementation. Assert it doesn't panic.
 	err := env.Events.Delete(ctx, "nonexistent-id")
-	// The current implementation doesn't distinguish "no rows affected", so
-	// this documents the actual behavior.
-	_ = err
+	assert.NoError(t, err)
 }

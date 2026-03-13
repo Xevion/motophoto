@@ -92,3 +92,31 @@ func TestEncodeCursorRoundtrip(t *testing.T) {
 	assert.NotNil(t, gotID)
 	assert.Equal(t, id, *gotID)
 }
+
+func TestParsePaginationParams_LimitZero(t *testing.T) {
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=0", nil)
+	_, _, limit := parsePaginationParams(r)
+	assert.Equal(t, int32(defaultLimit), limit)
+}
+
+func TestParsePaginationParams_LimitNegative(t *testing.T) {
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=-1", nil)
+	_, _, limit := parsePaginationParams(r)
+	assert.Equal(t, int32(defaultLimit), limit)
+}
+
+func TestParsePaginationParams_LimitAboveMax(t *testing.T) {
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?limit=101", nil)
+	_, _, limit := parsePaginationParams(r)
+	assert.Equal(t, int32(defaultLimit), limit)
+}
+
+func TestParsePaginationParams_EmptyCursorID(t *testing.T) {
+	cursor := base64.RawURLEncoding.EncodeToString([]byte("42:"))
+	r := httptest.NewRequestWithContext(context.Background(), "GET", "/?cursor="+cursor, nil)
+	sortOrder, id, _ := parsePaginationParams(r)
+	assert.NotNil(t, sortOrder)
+	assert.Equal(t, int32(42), *sortOrder)
+	assert.NotNil(t, id)
+	assert.Equal(t, "", *id)
+}
