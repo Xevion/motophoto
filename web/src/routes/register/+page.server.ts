@@ -2,7 +2,7 @@ import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { registerSchema } from '$lib/schemas/auth';
 import { fail, redirect } from '@sveltejs/kit';
-import { api, ApiError, NetworkError } from '$lib/api';
+import { api, ApiError, NetworkError, userMessage } from '$lib/api';
 import type { ItemResponse, UserResponse } from '$lib/types.gen';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -33,13 +33,12 @@ export const actions: Actions = {
 			);
 		} catch (err) {
 			if (err instanceof NetworkError) {
-				return message(form, 'Unable to reach the server. Please try again later.', {
-					status: 503,
-				});
+				return message(form, userMessage('Backend unavailable'), { status: 503 });
 			}
 			if (err instanceof ApiError) {
-				const msg = err.body?.error ?? 'Registration failed. Please try again.';
-				return message(form, msg, { status: err.status as 400 | 409 | 429 | 500 });
+				return message(form, userMessage(err.body?.error), {
+					status: err.status as 400 | 409 | 429 | 500,
+				});
 			}
 			throw err;
 		}
