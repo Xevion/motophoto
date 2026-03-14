@@ -20,6 +20,7 @@ import (
 	"github.com/Xevion/motophoto/internal/middleware"
 	"github.com/Xevion/motophoto/internal/service"
 	"github.com/Xevion/motophoto/internal/shutdown"
+	"github.com/Xevion/motophoto/internal/storage"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,18 +28,20 @@ import (
 type Options struct{}
 
 type Server struct {
-	router    *chi.Mux
-	db        *pgxpool.Pool
-	queries   *db.Queries
-	events    *service.EventService
-	galleries *service.GalleryService
-	sessions  *scs.SessionManager
-	auth      *middleware.Auth
-	shutdown  *shutdown.Tracker
-	port      string
+	router       *chi.Mux
+	db           *pgxpool.Pool
+	queries      *db.Queries
+	events       *service.EventService
+	galleries    *service.GalleryService
+	sessions     *scs.SessionManager
+	auth         *middleware.Auth
+	shutdown     *shutdown.Tracker
+	privateStore storage.Store
+	publicStore  storage.Store
+	port         string
 }
 
-func New(pool *pgxpool.Pool, sessions *scs.SessionManager, tracker *shutdown.Tracker, opts Options) (*Server, error) {
+func New(pool *pgxpool.Pool, sessions *scs.SessionManager, tracker *shutdown.Tracker, privateStore, publicStore storage.Store, opts Options) (*Server, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
@@ -46,15 +49,17 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager, tracker *shutdown.Tra
 
 	q := db.New(pool)
 	s := &Server{
-		router:    chi.NewRouter(),
-		port:      port,
-		db:        pool,
-		queries:   q,
-		events:    service.NewEventService(q),
-		galleries: service.NewGalleryService(q),
-		sessions:  sessions,
-		auth:      middleware.NewAuth(sessions, q),
-		shutdown:  tracker,
+		router:       chi.NewRouter(),
+		port:         port,
+		db:           pool,
+		queries:      q,
+		events:       service.NewEventService(q),
+		galleries:    service.NewGalleryService(q),
+		sessions:     sessions,
+		auth:         middleware.NewAuth(sessions, q),
+		shutdown:     tracker,
+		privateStore: privateStore,
+		publicStore:  publicStore,
 	}
 
 	s.setupMiddleware()

@@ -20,6 +20,7 @@ import (
 	"github.com/Xevion/motophoto/internal/server"
 	"github.com/Xevion/motophoto/internal/session"
 	"github.com/Xevion/motophoto/internal/shutdown"
+	"github.com/Xevion/motophoto/internal/storage"
 )
 
 // shouldUseJSON returns true when structured JSON logging should be used.
@@ -145,7 +146,32 @@ func main() {
 	sessions := session.New(pool, production)
 	tracker := shutdown.NewTracker()
 
-	srv, err := server.New(pool, sessions, tracker, server.Options{})
+	privateStore, err := storage.NewS3Store(ctx, storage.Config{
+		Endpoint:  os.Getenv("STORAGE_ENDPOINT"),
+		Region:    os.Getenv("STORAGE_REGION"),
+		AccessKey: os.Getenv("STORAGE_ACCESS_KEY"),
+		SecretKey: os.Getenv("STORAGE_SECRET_KEY"),
+		Bucket:    os.Getenv("STORAGE_PRIVATE_BUCKET"),
+	})
+	if err != nil {
+		slog.Error("failed to initialize private storage", "error", err)
+		os.Exit(1)
+	}
+
+	publicStore, err := storage.NewS3Store(ctx, storage.Config{
+		Endpoint:   os.Getenv("STORAGE_ENDPOINT"),
+		Region:     os.Getenv("STORAGE_REGION"),
+		AccessKey:  os.Getenv("STORAGE_ACCESS_KEY"),
+		SecretKey:  os.Getenv("STORAGE_SECRET_KEY"),
+		Bucket:     os.Getenv("STORAGE_PUBLIC_BUCKET"),
+		PublicBase: os.Getenv("STORAGE_PUBLIC_URL"),
+	})
+	if err != nil {
+		slog.Error("failed to initialize public storage", "error", err)
+		os.Exit(1)
+	}
+
+	srv, err := server.New(pool, sessions, tracker, privateStore, publicStore, server.Options{})
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)
