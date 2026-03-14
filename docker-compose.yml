@@ -16,6 +16,59 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "58305:9000"
+      - "46908:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing local/motophoto-originals &&
+      mc mb --ignore-existing local/motophoto-previews &&
+      mc anonymous set download local/motophoto-previews
+      "
+
+  imgproxy:
+    image: ghcr.io/imgproxy/imgproxy:latest
+    restart: unless-stopped
+    ports:
+      - "45252:8080"
+    environment:
+      IMGPROXY_USE_S3: "true"
+      IMGPROXY_S3_REGION: "us-east-1"
+      IMGPROXY_S3_ENDPOINT: "http://minio:9000"
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      IMGPROXY_QUALITY: "80"
+      IMGPROXY_STRIP_METADATA: "true"
+      IMGPROXY_AUTO_WEBP: "true"
+      IMGPROXY_PRESETS: >
+        thumb=resize:fill:300:300/gravity:sm/quality:75,
+        preview=resize:fit:800:0/quality:80,
+        full=resize:fit:1600:0/quality:90
+    depends_on:
+      minio:
+        condition: service_healthy
+
   app:
     build: .
     ports:
@@ -23,10 +76,21 @@ services:
     environment:
       DATABASE_URL: postgres://motophoto:motophoto@db:5432/motophoto?sslmode=disable
       PORT: "8080"
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_REGION: us-east-1
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_PRIVATE_BUCKET: motophoto-originals
+      STORAGE_PUBLIC_BUCKET: motophoto-previews
+      STORAGE_PUBLIC_URL: http://localhost:58305/motophoto-previews
+      IMGPROXY_URL: http://imgproxy:8080
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
   pgdata:
+  minio-data:
