@@ -33,6 +33,7 @@ type Server struct {
 	queries      *db.Queries
 	events       *service.EventService
 	galleries    *service.GalleryService
+	photos       *service.PhotoService
 	sessions     *scs.SessionManager
 	auth         *middleware.Auth
 	shutdown     *shutdown.Tracker
@@ -55,6 +56,7 @@ func New(pool *pgxpool.Pool, sessions *scs.SessionManager, tracker *shutdown.Tra
 		queries:      q,
 		events:       service.NewEventService(q),
 		galleries:    service.NewGalleryService(q),
+		photos:       service.NewPhotoService(q, privateStore, publicStore),
 		sessions:     sessions,
 		auth:         middleware.NewAuth(sessions, q),
 		shutdown:     tracker,
@@ -117,6 +119,8 @@ func (s *Server) setupRoutes() {
 				r.Post("/events/{eventId}/galleries", s.handleCreateGallery)
 				r.Patch("/events/{eventId}/galleries/{id}", s.handleUpdateGallery)
 				r.Delete("/events/{eventId}/galleries/{id}", s.handleDeleteGallery)
+				r.Post("/events/{eventId}/galleries/{galleryId}/photos/upload", s.handleInitUpload)
+				r.Post("/events/{eventId}/galleries/{galleryId}/photos/{photoId}/confirm", s.handleConfirmUpload)
 			})
 		})
 	})
@@ -144,6 +148,10 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error, action
 		writeError(w, http.StatusNotFound, "not found")
 	case errors.Is(err, service.ErrConflict):
 		writeError(w, http.StatusConflict, "already exists")
+	case errors.Is(err, service.ErrForbidden):
+		writeError(w, http.StatusForbidden, "forbidden")
+	case errors.Is(err, service.ErrValidation):
+		writeError(w, http.StatusBadRequest, err.Error())
 	default:
 		middleware.LoggerFromContext(r.Context()).Error("service action failed", "action", action, "error", err)
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to %s", action))

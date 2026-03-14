@@ -75,6 +75,27 @@ type UpdateGalleryRequest struct {
 	SortOrder   *int32  `json:"sort_order"`
 }
 
+type PhotoResponse struct {
+	Width       *int32 `json:"width"`
+	Height      *int32 `json:"height"`
+	ID          string `json:"id"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	PreviewURL  string `json:"preview_url"`
+	SizeBytes   int64  `json:"size_bytes"`
+}
+
+type InitUploadRequest struct {
+	Filename    string `json:"filename"     validate:"required"`
+	ContentType string `json:"content_type" validate:"required"`
+	SizeBytes   int64  `json:"size_bytes"   validate:"required,gt=0"`
+}
+
+type InitUploadResponse struct {
+	PhotoID   string `json:"photo_id"`
+	UploadURL string `json:"upload_url"`
+}
+
 type LoginRequest struct {
 	Email string `json:"email"    validate:"required,email"`
 	//nolint:gosec // G117: intentional request body field

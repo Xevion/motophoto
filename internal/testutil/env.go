@@ -18,6 +18,7 @@ type Env struct {
 	Queries   *db.Queries
 	Events    *service.EventService
 	Galleries *service.GalleryService
+	Photos    *service.PhotoService
 	Handler   http.Handler
 }
 
@@ -30,11 +31,13 @@ func NewEnv(t *testing.T) *Env {
 	q := db.New(pool)
 	handler := NewTestServer(t, pool)
 
+	noop := noopStore{}
 	return &Env{
 		Pool:      pool,
 		Queries:   q,
 		Events:    service.NewEventService(q),
 		Galleries: service.NewGalleryService(q),
+		Photos:    service.NewPhotoService(q, noop, noop),
 		Handler:   handler,
 	}
 }

@@ -95,6 +95,35 @@ func (s *S3Store) PublicURL(key string) string {
 	return s.publicURL + "/" + key
 }
 
+func (s *S3Store) PresignedPUT(ctx context.Context, key string, contentType string, expiry time.Duration) (string, error) {
+	req, err := s.presign.PresignPutObject(
+		ctx,
+		&s3.PutObjectInput{
+			Bucket:      aws.String(s.bucket),
+			Key:         aws.String(key),
+			ContentType: aws.String(contentType),
+		},
+		s3.WithPresignExpires(expiry),
+	)
+	if err != nil {
+		return "", fmt.Errorf("presigning PUT for %q: %w", key, err)
+	}
+
+	return req.URL, nil
+}
+
+func (s *S3Store) Download(ctx context.Context, key string) (io.ReadCloser, error) {
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("downloading object %q: %w", key, err)
+	}
+
+	return out.Body, nil
+}
+
 func (s *S3Store) Delete(ctx context.Context, key string) error {
 	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
