@@ -26,6 +26,10 @@ type S3Option func(*s3.Options)
 
 // NewS3Store creates a new S3-compatible storage backend.
 func NewS3Store(ctx context.Context, cfg Config, opts ...S3Option) (*S3Store, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
+
 	awsCfg, err := config.LoadDefaultConfig(
 		ctx,
 		config.WithRegion(cfg.Region),
