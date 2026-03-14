@@ -67,6 +67,24 @@ export interface UpdateGalleryRequest {
   description?: string;
   sort_order?: number /* int32 */;
 }
+export interface PhotoResponse {
+  width?: number /* int32 */;
+  height?: number /* int32 */;
+  id: string;
+  filename: string;
+  content_type: string;
+  preview_url: string;
+  size_bytes: number /* int64 */;
+}
+export interface InitUploadRequest {
+  filename: string;
+  content_type: string;
+  size_bytes: number /* int64 */;
+}
+export interface InitUploadResponse {
+  photo_id: string;
+  upload_url: string;
+}
 export interface LoginRequest {
   email: string;
 

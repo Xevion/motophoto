@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -28,6 +29,14 @@ func New(ctx context.Context) (*pgxpool.Pool, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		return nil, fmt.Errorf("DATABASE_URL is not set -- copy .env.example to .env and configure it")
+	}
+
+	// Detect unresolved Railway/shell template syntax that would produce a malformed DSN.
+	// Railway uses ${{ }} for variable references; if expansion fails the raw braces end up
+	// in the connection string (e.g. database="railway}}") and pgx accepts the malformed name
+	// silently until the server rejects it.
+	if strings.Contains(dsn, "}}") || strings.Contains(dsn, "${{") {
+		return nil, fmt.Errorf("DATABASE_URL contains unresolved template syntax (got %q): check Railway variable configuration", dsn)
 	}
 
 	config, err := pgxpool.ParseConfig(dsn)

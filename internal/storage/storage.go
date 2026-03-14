@@ -18,6 +18,12 @@ type Store interface {
 	// Panics if called on a store with no public base URL configured.
 	PublicURL(key string) string
 
+	// PresignedPUT returns a temporary URL that allows uploading an object.
+	PresignedPUT(ctx context.Context, key string, contentType string, expiry time.Duration) (string, error)
+
+	// Download retrieves an object's contents.
+	Download(ctx context.Context, key string) (io.ReadCloser, error)
+
 	// Delete removes an object.
 	Delete(ctx context.Context, key string) error
 }

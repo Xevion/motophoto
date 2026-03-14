@@ -28,6 +28,12 @@ func (noopStore) Upload(context.Context, string, io.Reader, string) error { retu
 func (noopStore) PresignedURL(context.Context, string, time.Duration) (string, error) {
 	return "", nil
 }
+func (noopStore) PresignedPUT(context.Context, string, string, time.Duration) (string, error) {
+	return "http://test/presigned-put", nil
+}
+func (noopStore) Download(_ context.Context, key string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader("")), nil
+}
 func (noopStore) PublicURL(key string) string          { return "http://test/" + key }
 func (noopStore) Delete(context.Context, string) error { return nil }
 
