@@ -186,3 +186,67 @@ func TestS3Store_PresignedURL(t *testing.T) {
 		assert.Contains(t, url, "X-Amz-Expires=900")
 	})
 }
+
+func TestS3Store_PresignedPUT(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns a signed PUT URL", func(t *testing.T) {
+		t.Parallel()
+
+		// PresignedPUT is a client-side operation (no HTTP call), so
+		// the mock server isn't hit, but we need a valid endpoint for store creation.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(srv.Close)
+
+		store := newTestStore(t, srv.URL, "https://cdn.example.com")
+		url, err := store.PresignedPUT(t.Context(), "photos/upload.jpg", "image/jpeg", 15*time.Minute)
+		require.NoError(t, err)
+
+		assert.Contains(t, url, "photos/upload.jpg")
+		assert.Contains(t, url, "X-Amz-Signature")
+		assert.Contains(t, url, "X-Amz-Expires=900")
+	})
+}
+
+func TestS3Store_Download(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns object body", func(t *testing.T) {
+		t.Parallel()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodGet {
+				w.Header().Set("Content-Type", "image/jpeg")
+				_, _ = w.Write([]byte("image-data"))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		}))
+		t.Cleanup(srv.Close)
+
+		store := newTestStore(t, srv.URL, "")
+		body, err := store.Download(t.Context(), "photos/test.jpg")
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, body.Close()) })
+
+		data, err := io.ReadAll(body)
+		require.NoError(t, err)
+		assert.Equal(t, "image-data", string(data))
+	})
+
+	t.Run("returns error on server failure", func(t *testing.T) {
+		t.Parallel()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		t.Cleanup(srv.Close)
+
+		store := newTestStore(t, srv.URL, "")
+		_, err := store.Download(t.Context(), "photos/missing.jpg")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "downloading object")
+	})
+}
