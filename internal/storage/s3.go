@@ -21,8 +21,11 @@ type S3Store struct {
 	publicURL string
 }
 
+// S3Option configures the underlying S3 client.
+type S3Option func(*s3.Options)
+
 // NewS3Store creates a new S3-compatible storage backend.
-func NewS3Store(ctx context.Context, cfg Config) (*S3Store, error) {
+func NewS3Store(ctx context.Context, cfg Config, opts ...S3Option) (*S3Store, error) {
 	awsCfg, err := config.LoadDefaultConfig(
 		ctx,
 		config.WithRegion(cfg.Region),
@@ -41,6 +44,9 @@ func NewS3Store(ctx context.Context, cfg Config) (*S3Store, error) {
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(cfg.Endpoint)
 		o.UsePathStyle = true
+		for _, opt := range opts {
+			opt(o)
+		}
 	})
 
 	return &S3Store{
