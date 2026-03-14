@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"context"
+	"io"
+
 	"github.com/alexedwards/scs/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -17,6 +20,16 @@ import (
 	"github.com/Xevion/motophoto/internal/shutdown"
 	"github.com/Xevion/motophoto/internal/testutil/dbfactory"
 )
+
+// noopStore is a no-op storage.Store for tests that don't exercise storage.
+type noopStore struct{}
+
+func (noopStore) Upload(context.Context, string, io.Reader, string) error { return nil }
+func (noopStore) PresignedURL(context.Context, string, time.Duration) (string, error) {
+	return "", nil
+}
+func (noopStore) PublicURL(key string) string          { return "http://test/" + key }
+func (noopStore) Delete(context.Context, string) error { return nil }
 
 // NewTestServer creates a Server backed by the given pool, with a minimal
 // in-memory session manager. Returns the http.Handler for use with httptest.
@@ -27,7 +40,7 @@ func NewTestServer(t *testing.T, pool *pgxpool.Pool) http.Handler {
 	sessions.Lifetime = 24 * time.Hour
 	sessions.Cookie.Name = session.CookieName
 
-	srv, err := server.New(pool, sessions, shutdown.NewTracker(), server.Options{})
+	srv, err := server.New(pool, sessions, shutdown.NewTracker(), noopStore{}, noopStore{}, server.Options{})
 	if err != nil {
 		t.Fatalf("testutil.NewTestServer: %v", err)
 	}
