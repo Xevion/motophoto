@@ -13,11 +13,11 @@ default:
 
 # Validate all code (parallel checks)
 check *flags:
-    bun scripts/check.ts {{flags}}
+    tempo check {{flags}}
 
 # Dev server - frontend + backend. Flags: -f(rontend) -b(ackend)
 dev *flags:
-    -bun scripts/dev.ts {{flags}}
+    -tempo dev {{flags}}
 
 # Run all tests (use -v for verbose, -run=<pattern> to filter)
 test *flags:
@@ -26,18 +26,15 @@ test *flags:
 
 # Run tests with coverage report and diff against master baseline
 cov:
-    bun scripts/octocov-local.ts
+    tempo run cov
 
 # Run linters
-lint:
-    bun run --cwd web lint
-    golangci-lint run --timeout=5m
+lint *flags:
+    tempo lint {{flags}}
 
 # Auto-format all code
-format:
-    goimports -w .
-    bun run --cwd web lint:fix
-    bun run --cwd web format
+format *flags:
+    tempo fmt {{flags}}
 
 # Build everything for production
 build:

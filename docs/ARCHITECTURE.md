@@ -90,10 +90,7 @@ motophoto/
 |   +-- svelte.config.js
 |   +-- vite.config.ts               # API proxy config
 +-- Justfile                         # Task runner -- all dev commands
-+-- scripts/                         # Bun-based dev scripts (check, dev)
-|   +-- check.ts                     # Parallel check runner
-|   +-- dev.ts                       # Dev server orchestrator
-|   +-- lib/                         # Shared utilities (fmt, proc)
++-- tempo.config.ts                  # @xevion/tempo config -- parallel checks, dev orchestration, coverage
 +-- docker-compose.yml               # Local Postgres
 +-- Dockerfile                       # Multi-stage production build
 +-- sqlc.yml                         # SQL code generation config
@@ -109,6 +106,7 @@ motophoto/
 | [Go 1.26+](https://go.dev) | Backend language | Yes |
 | [Bun](https://bun.sh) | Frontend runtime, script runner | Yes |
 | [just](https://just.systems) | Task runner | Yes |
+| tempo (`@xevion/tempo`) | Parallel check/dev/lint orchestration | Yes |
 | [Air](https://github.com/air-verse/air) | Go hot-reload dev server | For `just dev` |
 | [golangci-lint](https://golangci-lint.run) | Go linter | No -- skipped if missing |
 | [tygo](https://github.com/gzuidhof/tygo) | Go -> TypeScript type generation | No -- skipped if missing |

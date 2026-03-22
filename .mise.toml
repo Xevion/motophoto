@@ -1,3 +1,6 @@
+[settings.npm]
+package_manager = "bun"
+
 [tools]
 # Runtimes
 go = "1.26.0"
@@ -12,3 +15,6 @@ air = "1.64.5"
 "go:golang.org/x/tools/cmd/goimports" = "latest"
 "go:github.com/gzuidhof/tygo" = "0.2.21"
 "go:github.com/sqlc-dev/sqlc/cmd/sqlc" = "1.30.0"
+
+# Project tooling (installed via bun, see settings.npm above)
+"npm:@xevion/tempo" = "latest"

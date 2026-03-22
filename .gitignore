@@ -33,9 +33,9 @@ Thumbs.db
 *.swp
 *.swo
 
-# Node (web/)
-web/node_modules/
-web/.svelte-kit/
+# Node
+node_modules/
+.svelte-kit/
 web/build/
 
 # Go workspace
