@@ -126,13 +126,12 @@ export default defineConfig({
         } else if (!hasDockerDaemon()) {
           ctx.logger.warn("Docker daemon is not running -- run `just db` to start PostgreSQL");
         } else {
-          const dbStatus = Bun.spawnSync(
+          const dbStatus = runPiped(
             ["docker", "compose", "ps", "--status", "running", "--quiet", "db"],
-            { stdout: "pipe", stderr: "pipe" },
           );
           const dbRunning =
             dbStatus.exitCode === 0 &&
-            dbStatus.stdout.toString().trim().length > 0;
+            dbStatus.stdout.trim().length > 0;
           if (!dbRunning) {
             ctx.logger.warn("Database container is not running -- run `just db` to start PostgreSQL");
           }
@@ -169,7 +168,7 @@ export default defineConfig({
       // cached by commit SHA so subsequent runs are instant.
       if (hasTool("gh")) {
         const authOk =
-          Bun.spawnSync(["gh", "auth", "status"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
+          runPiped(["gh", "auth", "status"]).exitCode === 0;
 
         if (authOk) {
           const listResult = runPiped([
