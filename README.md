@@ -61,11 +61,11 @@ All commands are defined in `Justfile`:
 | `just dev -f` | Frontend only |
 | `just dev -b` | Backend only |
 | `just build` | Full production build (frontend + backend) |
-| `just check` | Parallel checks via `scripts/check.ts` (lint, format, build, test, sqlc diff, tygo diff) |
+| `just check` | Parallel checks via `tempo` (lint, format, build, test, sqlc diff) |
 | `just check --fix` | Auto-format then verify |
-| `just lint` | `golangci-lint` + frontend ESLint |
+| `just lint` | Run all linters via `tempo` |
 | `just test` | Run Go tests + Vitest |
-| `just format` | `goimports` + Biome format + ESLint fix |
+| `just format` | Auto-format all code via `tempo` |
 | `just generate` | Run sqlc + tygo code generation |
 | `just cov` | Coverage report (octocov) |
 | `just docker-build` | Build Docker image |
