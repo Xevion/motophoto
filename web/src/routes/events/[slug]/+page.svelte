@@ -1,5 +1,4 @@
 <script lang="ts">
-import { resolve } from '$app/paths';
 import Badge from '$lib/components/ui/badge.svelte';
 import Button from '$lib/components/ui/button.svelte';
 import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -71,20 +70,43 @@ const tagRow = css({
 	gap: '2',
 });
 
-const galleryGrid = css({
-	display: 'grid',
-	gridTemplateColumns: 'repeat(2, 1fr)',
-	gap: '2',
-	sm: { gridTemplateColumns: 'repeat(3, 1fr)' },
-	md: { gridTemplateColumns: 'repeat(4, 1fr)' },
+const galleriesSection = css({
+	mt: '6',
 });
 
-const skeletonPhoto = css({
-	aspectRatio: '3/2',
-	bg: 'bg.muted',
-	borderRadius: 'lg',
-	animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+const galleriesTitle = css({
+	fontSize: 'lg',
+	fontWeight: 'semibold',
+	mb: '3',
 });
+
+const emptyState = css({
+	textAlign: 'center',
+	color: 'fg.muted',
+	py: '8',
+	fontSize: 'sm',
+});
+
+const galleryLink = css({
+	display: 'block',
+	p: '3',
+	borderRadius: 'md',
+	border: '1px solid',
+	borderColor: 'border',
+	_hover: { bg: 'bg.muted' },
+});
+
+const galleryName = css({
+	fontSize: 'sm',
+	fontWeight: 'semibold',
+});
+
+const galleryMeta = css({
+	fontSize: 'xs',
+	color: 'fg.muted',
+	mt: '1',
+});
+
 </script>
 
 <svelte:head>
@@ -94,7 +116,7 @@ const skeletonPhoto = css({
 {#if data.event}
   <div class={wrapper}>
     <div class={backRow}>
-      <Button variant="ghost" size="sm" href={resolve("/")}>
+      <Button variant="ghost" size="sm" href="/">
         <ArrowLeft />
         All events
       </Button>
@@ -132,13 +154,34 @@ const skeletonPhoto = css({
       {/each}
     </div>
 
-    <!-- Skeleton gallery grid -->
-    <div>
-      <div class={galleryGrid}>
-        {#each { length: 8 } as _, i (i)}
-          <div class={skeletonPhoto}></div>
-        {/each}
-      </div>
+    <!-- Galleries Section -->
+    <div class={galleriesSection}>
+      <h2 class={galleriesTitle}>Galleries</h2>
+      {#if data.event.galleries && data.event.galleries.length > 0}
+        <div style="display: flex; flex-direction: column; gap: 2;">
+          {#each data.event.galleries as gallery (gallery.id)}
+            <a href="/events/{data.event.slug}/galleries/{gallery.slug}" class={galleryLink}>
+              <div class={galleryName}>{gallery.name}</div>
+              {#if gallery.description}
+                <p style="font-size: 0.875rem; color: var(--color-fg-muted); margin-top: 0.5rem;">
+                  {gallery.description}
+                </p>
+              {/if}
+              <div class={galleryMeta}>
+                {gallery.photo_count.toLocaleString()} {gallery.photo_count === 1 ? 'photo' : 'photos'}
+              </div>
+            </a>
+          {/each}
+        </div>
+      {:else}
+        <div class={emptyState}>
+          No galleries in this event yet
+        </div>
+      {/if}
     </div>
+  </div>
+{:else}
+  <div class={emptyState}>
+    No events yet
   </div>
 {/if}

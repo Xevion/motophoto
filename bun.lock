@@ -1,0 +1,33 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 0,
+  "workspaces": {
+    "": {
+      "devDependencies": {
+        "@types/node": "^25.5.0",
+        "@xevion/tempo": "^0.1.2",
+      },
+    },
+  },
+  "packages": {
+    "@catppuccin/palette": ["@catppuccin/palette@1.8.0", "", {}, "sha512-qXhwKiLzQomUygUJYB36YAFgs+dET5bIocfkiaFIatQF5Pwc7L112TlF9P8J5Oqs3x3XTjYSucG0ncHXSCuk7Q=="],
+
+    "@logtape/file": ["@logtape/file@2.0.5", "", { "peerDependencies": { "@logtape/logtape": "^2.0.5" } }, "sha512-SJ2UZ00IJptilqDMFwPIGmZLMTYNZbP7k4+7aBfP5DoLVifSmQoaxP2HtXMdExXhGP4/JrFepLE86ryPBUKB/Q=="],
+
+    "@logtape/logtape": ["@logtape/logtape@2.0.5", "", {}, "sha512-UizDkh20ZPJVOddRxG1F77WhHdlNl/sbQgoO8T534R7XvUBMAJ9En9f35u+meW2tRsNLvjz6R87Zanwf53tspQ=="],
+
+    "@types/node": ["@types/node@25.5.0", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw=="],
+
+    "@xevion/tempo": ["@xevion/tempo@0.1.2", "", { "dependencies": { "@catppuccin/palette": "^1.8.0", "@logtape/file": "^2.0.4", "@logtape/logtape": "^2.0.4", "ansis": "^4.2.0", "cleye": "^2.3.0" }, "bin": { "tempo": "dist/cli.mjs" } }, "sha512-hvE0mUKmu0J8PgwpelPnmOQ1aPQJxPOt92PkgZGMsnfHUv6gPvW13V6REcicsafZZxMuorO5EipC2Ce0TA0S9Q=="],
+
+    "ansis": ["ansis@4.2.0", "", {}, "sha512-HqZ5rWlFjGiV0tDm3UxxgNRqsOTniqoKZu0pIAfh7TZQMGuZK+hH0drySty0si0QXj1ieop4+SkSfPZBPPkHig=="],
+
+    "cleye": ["cleye@2.3.0", "", { "dependencies": { "terminal-columns": "^2.0.0", "type-flag": "^4.1.0" } }, "sha512-hnROLVsAA8JQo8W65/khA90gPvZ0ymuZqWwQcBpHrrmpIDD2CLvB7HdqAeA0Odxf7RpJLS5Zor0ujlPOXx4IBQ=="],
+
+    "terminal-columns": ["terminal-columns@2.0.0", "", {}, "sha512-6IByuUjyNZJXUtwDNm+OIe62zgwwaRbH+WMNTcx05O2G5V9WhvluAAHJY8OvUdwmzMPpqAD/7EUpGdI6ae1aiQ=="],
+
+    "type-flag": ["type-flag@4.1.0", "", {}, "sha512-I/K5a1jUhdFgzM3L7413akxQRzUYq4sCbef6bMAe6SrIvIdFxGZFJys5M1SiY0d0VrAjZjY4LQzppuTaLHMvSQ=="],
+
+    "undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
+  }
+}

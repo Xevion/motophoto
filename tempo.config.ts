@@ -1,8 +1,9 @@
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, renameSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, renameSync } from "fs";
+import { tmpdir } from "os";
+import { dirname, join } from "path";
 import { defineConfig } from "@xevion/tempo";
+import { spawnSync } from "child_process";
+import process from "process";
 import { c } from "@xevion/tempo/fmt";
 import { hasTool, hasDockerDaemon, runPiped, warnMissingTool } from "@xevion/tempo/proc";
 import { createOctocovConfig, testablePackages } from "@xevion/tempo/octocov";
@@ -127,12 +128,13 @@ export default defineConfig({
         } else if (!hasDockerDaemon()) {
           ctx.logger.warn("Docker daemon is not running -- run `just db` to start PostgreSQL");
         } else {
-          const dbStatus = Bun.spawnSync(
-            ["docker", "compose", "ps", "--status", "running", "--quiet", "db"],
-            { stdout: "pipe", stderr: "pipe" },
+          const dbStatus = spawnSync(
+            "docker",
+            ["compose", "ps", "--status", "running", "--quiet", "db"],
+            { stdio: ["ignore", "pipe", "pipe"] },
           );
           const dbRunning =
-            dbStatus.exitCode === 0 &&
+            dbStatus.status === 0 &&
             dbStatus.stdout.toString().trim().length > 0;
           if (!dbRunning) {
             ctx.logger.warn("Database container is not running -- run `just db` to start PostgreSQL");

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": false,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "typeRoots": ["./node_modules/@types"],
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["tempo.config.ts"],
+  "exclude": ["node_modules", "web", "internal"]
+}

@@ -1,5 +1,4 @@
 <script lang="ts">
-import { resolve } from '$app/paths';
 import Badge from '$lib/components/ui/badge.svelte';
 import { css } from 'styled-system/css';
 import UiSelect from '$lib/components/ui/select.svelte';
@@ -233,7 +232,7 @@ const sortTrigger = css({
     <div class={eventListWrapper}>
       <div class={grid}>
         {#each sortedEvents as event (event.id)}
-          <a href={resolve('/events/[id]', { id: String(event.id) })} class={cardLink}>
+          <a href="/events/{event.slug}" class={cardLink}>
             <div class={card}>
               <div>
                 <div class={sportLabel}>{event.sport}</div>

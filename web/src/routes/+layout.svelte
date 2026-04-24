@@ -102,11 +102,11 @@ const userName = css({
 <div class={layout}>
   <header class={header}>
     <div class={headerInner}>
-      <a href={resolve("/")} class={logoLink}>
+      <a href={resolve("/", {})} class={logoLink}>
         <span class={logoText}>MotoPhoto</span>
       </a>
       <nav class={navLinks}>
-        <a href={resolve('/events')} class={navLink}>Browse Events</a>
+        <a href={resolve('/events', {})} class={navLink}>Browse Events</a>
         <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- route not yet created -->
         <a href="/for-photographers" class={navLink}>For Photographers</a>
       </nav>
@@ -118,10 +118,10 @@ const userName = css({
           </form>
         {:else}
           {#if page.url.pathname !== '/login'}
-            <Button href={resolve('/login')} variant="ghost" size="sm">Log In</Button>
+            <Button href={resolve('/login', {})} variant="ghost" size="sm">Log In</Button>
           {/if}
           {#if page.url.pathname !== '/register'}
-            <Button href={resolve('/register')} size="sm">Sign Up</Button>
+            <Button href={resolve('/register', {})} size="sm">Sign Up</Button>
           {/if}
         {/if}
         <ThemeToggle />
