@@ -18,3 +18,4 @@ air = "1.64.5"
 
 # Project tooling (installed via bun, see settings.npm above)
 "npm:@xevion/tempo" = "latest"
+node = "latest"

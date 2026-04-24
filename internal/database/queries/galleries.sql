@@ -28,3 +28,24 @@ RETURNING *;
 
 -- name: DeleteGallery :exec
 DELETE FROM galleries WHERE id = $1 AND event_id = $2;
+
+-- name: ListPhotosByGallery :many
+SELECT
+    id,
+    gallery_id,
+    filename,
+    preview_key,
+    width,
+    height,
+    sort_order,
+    taken_at,
+    created_at
+FROM photos
+WHERE gallery_id = $1
+  AND deleted_at IS NULL
+  AND (
+        sqlc.narg(cursor_id) IS NULL
+        OR (sort_order, id) > (sqlc.narg(cursor_sort_order), sqlc.narg(cursor_id))
+      )
+ORDER BY sort_order, id
+LIMIT $2;
