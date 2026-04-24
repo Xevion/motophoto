@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -14,12 +15,14 @@ import (
 
 // Gallery is the service-layer representation with plain Go types.
 type Gallery struct {
-	Description *string
-	ID          string
-	Slug        string
-	Name        string
-	PhotoCount  int64
-	SortOrder   int32
+	EarliestPhotoTime *time.Time
+	LatestPhotoTime   *time.Time
+	Description       *string
+	ID                string
+	Slug              string
+	Name              string
+	PhotoCount        int64
+	SortOrder         int32
 }
 
 // CreateGalleryParams holds inputs for creating a gallery.
@@ -136,6 +139,27 @@ func (s *GalleryService) Delete(ctx context.Context, eventID, id string) error {
 		return fmt.Errorf("delete gallery %q: %w", id, err)
 	}
 	return nil
+}
+
+// GetPhotoTimeRange returns the earliest and latest taken_at timestamp for photos in this gallery.
+func (s *GalleryService) GetPhotoTimeRange(ctx context.Context, galleryID string) (*time.Time, *time.Time, error) {
+	row, err := s.queries.GetPhotoTimeRange(ctx, galleryID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, nil
+		}
+		return nil, nil, fmt.Errorf("get photo time range: %w", err)
+	}
+
+	var earliest, latest *time.Time
+	if row.MinTakenAt.Valid {
+		earliest = &row.MinTakenAt.Time
+	}
+	if row.MaxTakenAt.Valid {
+		latest = &row.MaxTakenAt.Time
+	}
+
+	return earliest, latest, nil
 }
 
 func (s *GalleryService) verifyEventExists(ctx context.Context, eventID string) error {

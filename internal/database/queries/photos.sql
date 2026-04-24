@@ -7,6 +7,13 @@ RETURNING *;
 SELECT * FROM photos
 WHERE id = $1 AND gallery_id = $2;
 
+-- name: GetPhotoTimeRange :one
+SELECT 
+    MIN(taken_at) as min_taken_at,
+    MAX(taken_at) as max_taken_at
+FROM photos
+WHERE gallery_id = $1 AND deleted_at IS NULL AND status = 'ready' AND taken_at IS NOT NULL;
+
 -- name: ConfirmPhoto :one
 UPDATE photos SET
     width      = $3,
@@ -21,5 +28,9 @@ RETURNING *;
 -- name: ListPhotosByGallery :many
 SELECT *
 FROM photos
-WHERE gallery_id = $1 AND deleted_at IS NULL AND status = 'ready'
+WHERE gallery_id = $1 
+    AND deleted_at IS NULL 
+    AND status = 'ready'
+    AND (sqlc.narg('taken_after')::timestamptz IS NULL OR taken_at >= sqlc.narg('taken_after')::timestamptz)
+    AND (sqlc.narg('taken_before')::timestamptz IS NULL OR taken_at <= sqlc.narg('taken_before')::timestamptz)
 ORDER BY sort_order, id;

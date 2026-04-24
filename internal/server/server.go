@@ -95,6 +95,9 @@ func (s *Server) setupRoutes() {
 		})
 
 		r.Route("/v1", func(r chi.Router) {
+			// Development/testing endpoints
+			r.Post("/test/seed", s.handleSeedTestData)
+
 			r.Post("/auth/register", s.handleRegister)
 			r.Post("/auth/login", s.handleLogin)
 			r.Post("/auth/logout", s.handleLogout)
@@ -103,6 +106,8 @@ func (s *Server) setupRoutes() {
 			r.Get("/events", s.handleListEvents)
 			r.Get("/events/{id}", s.handleGetEvent)
 			r.Get("/events/{eventId}/galleries", s.handleListGalleries)
+			r.Get("/events/{eventId}/galleries/{galleryId}", s.handleGetGallery)
+			r.Get("/events/{eventId}/galleries/{galleryId}/photos", s.handleListPhotos)
 
 			// Authenticated routes (any role)
 			r.Group(func(r chi.Router) {

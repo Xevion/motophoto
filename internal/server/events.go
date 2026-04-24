@@ -24,14 +24,6 @@ func eventResponseFromService(e service.Event) EventResponse {
 	}
 }
 
-func galleryResponseFromService(g service.Gallery) GalleryResponse {
-	return GalleryResponse{
-		ID: g.ID, Slug: g.Slug, Name: g.Name,
-		Description: g.Description,
-		SortOrder:   g.SortOrder, PhotoCount: g.PhotoCount,
-	}
-}
-
 func (s *Server) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	cursorSortOrder, cursorID, limit := parsePaginationParams(r)
 

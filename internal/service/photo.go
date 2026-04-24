@@ -29,6 +29,7 @@ import (
 
 // Photo is the service-layer representation with plain Go types.
 type Photo struct {
+	TakenAt     *time.Time
 	Width       *int32
 	Height      *int32
 	PreviewURL  string
@@ -206,6 +207,11 @@ func (s *PhotoService) ConfirmUpload(ctx context.Context, eventID, galleryID, ph
 		return nil, fmt.Errorf("confirm photo row: %w", err)
 	}
 
+	var confirmedTakenAt *time.Time
+	if confirmed.TakenAt.Valid {
+		confirmedTakenAt = &confirmed.TakenAt.Time
+	}
+
 	return &Photo{
 		ID:          confirmed.ID,
 		Filename:    confirmed.Filename,
@@ -214,7 +220,71 @@ func (s *PhotoService) ConfirmUpload(ctx context.Context, eventID, galleryID, ph
 		SizeBytes:   confirmed.SizeBytes,
 		Width:       width,
 		Height:      height,
+		TakenAt:     confirmedTakenAt,
 	}, nil
+}
+
+// ListByGallery returns photos for a gallery, optionally filtered by taken_at timestamp.
+func (s *PhotoService) ListByGallery(ctx context.Context, eventID, galleryID, takenAfter, takenBefore string) ([]Photo, error) {
+	if err := s.verifyGallery(ctx, galleryID, eventID); err != nil {
+		return nil, err
+	}
+
+	var taken_after_pg pgtype.Timestamptz
+	var taken_before_pg pgtype.Timestamptz
+
+	if takenAfter != "" {
+		if t, err := time.Parse(time.RFC3339, takenAfter); err == nil {
+			taken_after_pg = pgtype.Timestamptz{Time: t, Valid: true}
+		}
+	}
+
+	if takenBefore != "" {
+		if t, err := time.Parse(time.RFC3339, takenBefore); err == nil {
+			taken_before_pg = pgtype.Timestamptz{Time: t, Valid: true}
+		}
+	}
+
+	rows, err := s.queries.ListPhotosByGallery(ctx, db.ListPhotosByGalleryParams{
+		GalleryID:   galleryID,
+		TakenAfter:  taken_after_pg,
+		TakenBefore: taken_before_pg,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list photos: %w", err)
+	}
+
+	photos := make([]Photo, 0, len(rows))
+	for _, row := range rows {
+		var photoTakenAt *time.Time
+		if row.TakenAt.Valid {
+			photoTakenAt = &row.TakenAt.Time
+		}
+
+		photos = append(photos, Photo{
+			ID:          row.ID,
+			Filename:    row.Filename,
+			ContentType: row.ContentType,
+			PreviewURL:  s.publicStore.PublicURL(row.PreviewKey),
+			SizeBytes:   row.SizeBytes,
+			Width:       pgtypeInt4ToPtr(row.Width),
+			Height:      pgtypeInt4ToPtr(row.Height),
+			TakenAt:     photoTakenAt,
+		})
+	}
+
+	return photos, nil
+}
+
+func (s *PhotoService) verifyGallery(ctx context.Context, galleryID, eventID string) error {
+	_, err := s.queries.GetGallery(ctx, db.GetGalleryParams{ID: galleryID, EventID: eventID})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("get gallery: %w", err)
+	}
+	return nil
 }
 
 func (s *PhotoService) verifyOwnership(ctx context.Context, eventID, photographerID string) error {
@@ -231,15 +301,12 @@ func (s *PhotoService) verifyOwnership(ctx context.Context, eventID, photographe
 	return nil
 }
 
-func (s *PhotoService) verifyGallery(ctx context.Context, galleryID, eventID string) error {
-	_, err := s.queries.GetGallery(ctx, db.GetGalleryParams{ID: galleryID, EventID: eventID})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrNotFound
-		}
-		return fmt.Errorf("get gallery: %w", err)
+// pgtypeInt4ToPtr converts a pgtype.Int4 to a pointer to int32
+func pgtypeInt4ToPtr(v pgtype.Int4) *int32 {
+	if !v.Valid {
+		return nil
 	}
-	return nil
+	return &v.Int32
 }
 
 // safeIntToInt32 clamps an int to the int32 range.

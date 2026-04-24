@@ -30,12 +30,14 @@ type EventResponse struct {
 }
 
 type GalleryResponse struct {
-	Description *string `json:"description"`
-	ID          string  `json:"id"`
-	Slug        string  `json:"slug"`
-	Name        string  `json:"name"`
-	PhotoCount  int64   `json:"photo_count"`
-	SortOrder   int32   `json:"sort_order"`
+	EarliestPhotoTime *string `json:"earliest_photo_time"`
+	LatestPhotoTime   *string `json:"latest_photo_time"`
+	Description       *string `json:"description"`
+	ID                string  `json:"id"`
+	Slug              string  `json:"slug"`
+	Name              string  `json:"name"`
+	PhotoCount        int64   `json:"photo_count"`
+	SortOrder         int32   `json:"sort_order"`
 }
 
 type CreateEventRequest struct {
@@ -76,13 +78,14 @@ type UpdateGalleryRequest struct {
 }
 
 type PhotoResponse struct {
-	Width       *int32 `json:"width"`
-	Height      *int32 `json:"height"`
-	ID          string `json:"id"`
-	Filename    string `json:"filename"`
-	ContentType string `json:"content_type"`
-	PreviewURL  string `json:"preview_url"`
-	SizeBytes   int64  `json:"size_bytes"`
+	TakenAt     *string `json:"taken_at"`
+	Width       *int32  `json:"width"`
+	Height      *int32  `json:"height"`
+	ID          string  `json:"id"`
+	Filename    string  `json:"filename"`
+	ContentType string  `json:"content_type"`
+	PreviewURL  string  `json:"preview_url"`
+	SizeBytes   int64   `json:"size_bytes"`
 }
 
 type InitUploadRequest struct {

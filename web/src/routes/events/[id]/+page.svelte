@@ -85,6 +85,30 @@ const skeletonPhoto = css({
 	borderRadius: 'lg',
 	animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
 });
+
+const galleryCard = css({
+	display: 'flex',
+	flexDirection: 'column',
+	gap: '2',
+	p: '4',
+	bg: 'bg.muted',
+	borderRadius: 'lg',
+	cursor: 'pointer',
+	transition: 'all 0.2s',
+	_hover: { bg: 'bg.subtle', transform: 'translateY(-2px)' },
+	textDecoration: 'none',
+});
+
+const galleryName = css({
+	fontSize: 'lg',
+	fontWeight: 'semibold',
+});
+
+const galleryMeta = css({
+	fontSize: 'sm',
+	color: 'fg.muted',
+});
+
 </script>
 
 <svelte:head>
@@ -132,13 +156,23 @@ const skeletonPhoto = css({
       {/each}
     </div>
 
-    <!-- Skeleton gallery grid -->
-    <div>
-      <div class={galleryGrid}>
-        {#each { length: 8 } as _, i (i)}
-          <div class={skeletonPhoto}></div>
-        {/each}
+    <!-- Galleries section -->
+    {#if data.event.galleries && data.event.galleries.length > 0}
+      <div>
+        <h2 class={css({ fontSize: 'xl', fontWeight: 'semibold', mb: '4' })}>Galleries</h2>
+        <div class={galleryGrid}>
+          {#each data.event.galleries as gallery (gallery.id)}
+            <a href={resolve(`/events/${data.event.id}/galleries/${gallery.id}`)} class={galleryCard}>
+              <div class={galleryName}>{gallery.name}</div>
+              <div class={galleryMeta}>{gallery.photo_count} {gallery.photo_count === 1 ? 'photo' : 'photos'}</div>
+            </a>
+          {/each}
+        </div>
       </div>
-    </div>
+    {:else}
+      <div class={css({ textAlign: 'center', py: '12', color: 'fg.muted' })}>
+        <p>No galleries yet</p>
+      </div>
+    {/if}
   </div>
 {/if}

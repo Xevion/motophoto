@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -12,6 +13,11 @@ import (
 )
 
 func photoResponseFromService(p service.Photo) PhotoResponse {
+	var takenAt *string
+	if p.TakenAt != nil {
+		takenAtStr := p.TakenAt.UTC().Format(time.RFC3339)
+		takenAt = &takenAtStr
+	}
 	return PhotoResponse{
 		ID:          p.ID,
 		Filename:    p.Filename,
@@ -20,6 +26,7 @@ func photoResponseFromService(p service.Photo) PhotoResponse {
 		SizeBytes:   p.SizeBytes,
 		Width:       p.Width,
 		Height:      p.Height,
+		TakenAt:     takenAt,
 	}
 }
 
@@ -69,4 +76,25 @@ func (s *Server) handleConfirmUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, ItemResponse[PhotoResponse]{Data: photoResponseFromService(*photo)})
+}
+
+func (s *Server) handleListPhotos(w http.ResponseWriter, r *http.Request) {
+	eventID := chi.URLParam(r, "eventId")
+	galleryID := chi.URLParam(r, "galleryId")
+
+	takenAfter := r.URL.Query().Get("taken_after")
+	takenBefore := r.URL.Query().Get("taken_before")
+
+	photos, err := s.photos.ListByGallery(r.Context(), eventID, galleryID, takenAfter, takenBefore)
+	if err != nil {
+		writeServiceError(w, r, err, "list gallery photos")
+		return
+	}
+
+	data := make([]PhotoResponse, 0, len(photos))
+	for _, p := range photos {
+		data = append(data, photoResponseFromService(p))
+	}
+
+	writeJSON(w, http.StatusOK, ListResponse[PhotoResponse]{Data: data})
 }

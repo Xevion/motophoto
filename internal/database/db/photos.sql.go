@@ -145,15 +145,45 @@ func (q *Queries) GetPhoto(ctx context.Context, arg GetPhotoParams) (Photo, erro
 	return i, err
 }
 
+const getPhotoTimeRange = `-- name: GetPhotoTimeRange :one
+SELECT 
+    MIN(taken_at) as min_taken_at,
+    MAX(taken_at) as max_taken_at
+FROM photos
+WHERE gallery_id = $1 AND deleted_at IS NULL AND status = 'ready' AND taken_at IS NOT NULL
+`
+
+type GetPhotoTimeRangeRow struct {
+	MinTakenAt pgtype.Timestamptz `json:"min_taken_at"`
+	MaxTakenAt pgtype.Timestamptz `json:"max_taken_at"`
+}
+
+func (q *Queries) GetPhotoTimeRange(ctx context.Context, galleryID string) (GetPhotoTimeRangeRow, error) {
+	row := q.db.QueryRow(ctx, getPhotoTimeRange, galleryID)
+	var i GetPhotoTimeRangeRow
+	err := row.Scan(&i.MinTakenAt, &i.MaxTakenAt)
+	return i, err
+}
+
 const listPhotosByGallery = `-- name: ListPhotosByGallery :many
 SELECT id, gallery_id, storage_key, preview_key, filename, content_type, size_bytes, width, height, sort_order, exif_data, taken_at, deleted_at, created_at, updated_at, status
 FROM photos
-WHERE gallery_id = $1 AND deleted_at IS NULL AND status = 'ready'
+WHERE gallery_id = $1 
+    AND deleted_at IS NULL 
+    AND status = 'ready'
+    AND ($2::timestamptz IS NULL OR taken_at >= $2::timestamptz)
+    AND ($3::timestamptz IS NULL OR taken_at <= $3::timestamptz)
 ORDER BY sort_order, id
 `
 
-func (q *Queries) ListPhotosByGallery(ctx context.Context, galleryID string) ([]Photo, error) {
-	rows, err := q.db.Query(ctx, listPhotosByGallery, galleryID)
+type ListPhotosByGalleryParams struct {
+	GalleryID   string             `json:"gallery_id"`
+	TakenAfter  pgtype.Timestamptz `json:"taken_after"`
+	TakenBefore pgtype.Timestamptz `json:"taken_before"`
+}
+
+func (q *Queries) ListPhotosByGallery(ctx context.Context, arg ListPhotosByGalleryParams) ([]Photo, error) {
+	rows, err := q.db.Query(ctx, listPhotosByGallery, arg.GalleryID, arg.TakenAfter, arg.TakenBefore)
 	if err != nil {
 		return nil, err
 	}

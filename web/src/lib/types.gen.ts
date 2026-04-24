@@ -27,6 +27,8 @@ export interface EventResponse {
   photo_count: number /* int64 */;
 }
 export interface GalleryResponse {
+  earliest_photo_time?: string;
+  latest_photo_time?: string;
   description?: string;
   id: string;
   slug: string;
@@ -68,6 +70,7 @@ export interface UpdateGalleryRequest {
   sort_order?: number /* int32 */;
 }
 export interface PhotoResponse {
+  taken_at?: string;
   width?: number /* int32 */;
   height?: number /* int32 */;
   id: string;
