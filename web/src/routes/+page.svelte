@@ -14,8 +14,8 @@ type SortKey = 'date-desc' | 'date-asc' | 'name-asc' | 'photos-desc';
 const sortItems = [
 	{ value: 'date-desc', label: 'Newest first' },
 	{ value: 'date-asc', label: 'Oldest first' },
-	{ value: 'name-asc', label: 'Name A\u2013Z' },
-	{ value: 'photos-desc', label: 'Most photos' },
+	{ value: 'name-asc', label: 'Name A–Z' },
+	{ value: 'photos-desc', label: 'Most photos' }
 ];
 
 let sortValue = $state<string[]>(['date-desc']);
@@ -30,13 +30,13 @@ function compareEvents(a: EventResponse, b: EventResponse): number {
 		case 'name-asc':
 			return a.name.localeCompare(b.name);
 		case 'photos-desc':
-			return b.photo_count - a.photo_count;
+			return (b.photo_count ?? 0) - (a.photo_count ?? 0);
 		default:
 			return 0;
 	}
 }
 
-const sortedEvents = $derived([...data.events].sort(compareEvents));
+const sortedEvents = $derived([...(data.events ?? [])].sort(compareEvents));
 
 const page = css({
 	display: 'flex',

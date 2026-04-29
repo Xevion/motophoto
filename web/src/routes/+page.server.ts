@@ -10,14 +10,14 @@ export const load: PageServerLoad = async ({ fetch }) => {
 
 		return {
 			events: eventsData.data,
-			total: eventsData.data.length,
-			backendStatus: health.status,
+			nextCursor: eventsData.next_cursor ?? null,
+			backendStatus: health.status
 		};
 	} catch {
 		return {
 			events: [],
-			total: 0,
-			backendStatus: 'unavailable',
+			nextCursor: null,
+			backendStatus: 'unavailable'
 		};
 	}
 };
