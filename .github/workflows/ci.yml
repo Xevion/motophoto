@@ -49,9 +49,11 @@ jobs:
           go install golang.org/x/tools/cmd/goimports@latest
           test -z "$(goimports -l .)"
 
+      # Pinned to the .mise.toml version so lint findings reproduce locally.
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
+          version: v2.11.2
           args: --timeout=5m
 
       - name: Build
@@ -67,12 +69,12 @@ jobs:
 
       - name: Check sqlc generated code
         run: |
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
           sqlc diff
 
       - name: Check tygo generated bindings
         run: |
-          go install github.com/gzuidhof/tygo@latest
+          go install github.com/gzuidhof/tygo@v0.2.21
           tygo generate
           git diff --exit-code -- web/src/lib/types.gen.ts
 
