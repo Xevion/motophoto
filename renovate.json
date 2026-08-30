@@ -1,12 +1,28 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
-  "dependencyDashboard": false,
+  "description": [
+    "osvVulnerabilityAlerts is what makes Renovate raise security fixes here at all. The other path reads GitHub's Dependabot alert feed, and it defaults to off.",
+    "The dependency dashboard is where Renovate reports updates it is holding back; with it off, a security fix stuck behind a group is invisible."
+  ],
+  "dependencyDashboard": true,
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "addLabels": ["security"]
+  },
   "packageRules": [
     {
-      "description": "Group Go dependencies",
+      "description": "Non-major Go updates share a PR. The updateTypes filter is load-bearing: unscoped, this group swallows majors too, and one blocked upgrade strands every other update in it.",
       "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch"],
       "groupName": "go dependencies"
+    },
+    {
+      "description": "Majors get their own PR so a migration cannot stall the group",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major"]
     },
     {
       "description": "Group Svelte ecosystem",
