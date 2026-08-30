@@ -102,20 +102,25 @@ jobs:
         working-directory: web
         run: bun run format:check
 
-  govulncheck:
-    name: Vulnerability Check
+  # Reports every advisory; fails only on what a change introduces. Go earns a
+  # real gate because govulncheck resolves symbols against the call graph.
+  advisories:
+    name: Advisories
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The baseline is scanned from a worktree, so the history has to be real.
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
 
-      - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
+      # Scans the Go module and the SvelteKit frontend under web/ in one pass.
+      - uses: Xevion/advisory-action@v1
 
   docker:
     name: Docker Build
