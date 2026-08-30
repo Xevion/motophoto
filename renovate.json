@@ -26,32 +26,32 @@
     },
     {
       "description": "Group Svelte ecosystem",
-      "matchPackagePatterns": ["^@sveltejs/", "^svelte"],
+      "matchPackageNames": ["/^@sveltejs//", "/^svelte/"],
       "groupName": "svelte"
     },
     {
       "description": "Group PandaCSS ecosystem",
-      "matchPackagePatterns": ["^@pandacss/", "^@park-ui/"],
+      "matchPackageNames": ["/^@pandacss//", "/^@park-ui//"],
       "groupName": "pandacss"
     },
     {
       "description": "Group Biome formatter",
-      "matchPackagePatterns": ["^@biomejs/"],
+      "matchPackageNames": ["/^@biomejs//"],
       "groupName": "biome"
     },
     {
       "description": "Group Ark UI headless components",
-      "matchPackagePatterns": ["^@ark-ui/"],
+      "matchPackageNames": ["/^@ark-ui//"],
       "groupName": "ark-ui"
     },
     {
       "description": "Group ESLint and linting tools",
-      "matchPackagePatterns": ["^@eslint/", "^eslint", "^typescript-eslint", "^@typescript-eslint/"],
+      "matchPackageNames": ["/^@eslint//", "/^eslint/", "/^typescript-eslint/", "/^@typescript-eslint//"],
       "groupName": "linting"
     },
     {
       "description": "Group TypeScript and type definitions",
-      "matchPackagePatterns": ["^typescript$", "^@types/"],
+      "matchPackageNames": ["/^typescript$/", "/^@types//"],
       "groupName": "typescript"
     }
   ]
