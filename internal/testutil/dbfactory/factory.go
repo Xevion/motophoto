@@ -17,9 +17,9 @@ import (
 	"github.com/Xevion/motophoto/internal/service"
 )
 
-var seq int64
+var seq atomic.Int64
 
-func nextSeq() int64 { return atomic.AddInt64(&seq, 1) }
+func nextSeq() int64 { return seq.Add(1) }
 
 // UserOpts overrides defaults for test user creation.
 type UserOpts struct {
